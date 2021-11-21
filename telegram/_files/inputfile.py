@@ -54,28 +54,28 @@ class InputFile:
     __slots__ = ('filename', 'attach_name', 'input_file_content', 'mimetype')
 
     def __init__(self, obj: Union[IO, bytes], filename: str = None):
-        self.filename = None
         if isinstance(obj, bytes):
             self.input_file_content = obj
         else:
             self.input_file_content = obj.read()
         self.attach_name = 'attached' + uuid4().hex
 
-        if filename:
-            self.filename = filename
-        elif hasattr(obj, 'name') and not isinstance(obj.name, int):  # type: ignore[union-attr]
-            self.filename = Path(obj.name).name  # type: ignore[union-attr]
+        if (
+            not filename
+            and hasattr(obj, 'name')
+            and not isinstance(obj.name, int)  # type: ignore[union-attr]
+        ):
+            filename = Path(obj.name).name  # type: ignore[union-attr]
 
         image_mime_type = self.is_image(self.input_file_content)
         if image_mime_type:
             self.mimetype = image_mime_type
-        elif self.filename:
-            self.mimetype = mimetypes.guess_type(self.filename)[0] or _DEFAULT_MIME_TYPE
+        elif filename:
+            self.mimetype = mimetypes.guess_type(filename)[0] or _DEFAULT_MIME_TYPE
         else:
             self.mimetype = _DEFAULT_MIME_TYPE
 
-        if not self.filename:
-            self.filename = self.mimetype.replace('/', '.')
+        self.filename = filename or self.mimetype.replace('/', '.')
 
     @property
     def field_tuple(self) -> FieldTuple:  # skipcq: PY-D0003

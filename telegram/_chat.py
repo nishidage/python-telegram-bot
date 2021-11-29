@@ -184,7 +184,7 @@ class Chat(TelegramObject):
 
     def __init__(
         self,
-        id: int,
+        id: int,  # pylint: disable=invalid-name
         type: str,
         title: str = None,
         username: str = None,
@@ -1511,7 +1511,7 @@ class Chat(TelegramObject):
 
     async def edit_invite_link(
         self,
-        invite_link: str,
+        invite_link: Union[str, 'ChatInviteLink'],
         expire_date: Union[int, datetime] = None,
         member_limit: int = None,
         timeout: ODVInput[float] = DEFAULT_NONE,
@@ -1548,7 +1548,7 @@ class Chat(TelegramObject):
 
     async def revoke_invite_link(
         self,
-        invite_link: str,
+        invite_link: Union[str, 'ChatInviteLink'],
         timeout: ODVInput[float] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
     ) -> 'ChatInviteLink':

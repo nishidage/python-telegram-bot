@@ -16,13 +16,13 @@
 #
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
+import datetime
 import asyncio
 import inspect
 import logging
 import time
 import datetime as dtm
 from collections import defaultdict
-from platform import python_implementation
 
 import pytest
 import pytz
@@ -55,7 +55,7 @@ from telegram import (
 )
 from telegram.constants import ChatAction, ParseMode, InlineQueryLimit
 from telegram.ext import ExtBot, InvalidCallbackData
-from telegram.error import BadRequest, InvalidToken, NetworkError, RetryAfter, TelegramError
+from telegram.error import BadRequest, InvalidToken, NetworkError, TelegramError
 from telegram._utils.datetime import from_timestamp, to_timestamp
 from telegram._utils.defaultvalue import DefaultValue
 from telegram.helpers import escape_markdown
@@ -572,10 +572,6 @@ class TestBot:
         assert message.venue.foursquare_type is None
 
     @flaky(3, 1)
-    @pytest.mark.xfail(raises=RetryAfter)
-    @pytest.mark.skipif(
-        python_implementation() == 'PyPy', reason='Unstable on pypy for some reason'
-    )
     @pytest.mark.asyncio
     async def test_send_contact(self, bot, chat_id):
         phone_number = '+11234567890'
@@ -702,7 +698,7 @@ class TestBot:
         assert new_message.poll.id == message.poll.id
         assert new_message.poll.is_closed
 
-    @flaky(5, 1)
+    @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_close_date_default_tz(self, tz_bot, super_group_id):
         question = 'Is this a test?'
@@ -714,24 +710,26 @@ class TestBot:
         aware_close_date = dtm.datetime.now(tz=tz_bot.defaults.tzinfo) + dtm.timedelta(seconds=5)
         close_date = aware_close_date.replace(tzinfo=None)
 
-        message = await tz_bot.send_poll(
+        msg = await tz_bot.send_poll(  # The timezone returned from this is always converted to UTC
             chat_id=super_group_id,
             question=question,
             options=answers,
             close_date=close_date,
             timeout=60,
         )
-        assert message.poll.close_date == aware_close_date.replace(microsecond=0)
+        # Sometimes there can be a few seconds delay, so don't let the test fail due to that-
+        msg.poll.close_date = msg.poll.close_date.astimezone(aware_close_date.tzinfo)
+        assert abs(msg.poll.close_date - aware_close_date) <= datetime.timedelta(seconds=5)
 
         time.sleep(5.1)
 
         new_message = await tz_bot.edit_message_reply_markup(
             chat_id=super_group_id,
-            message_id=message.message_id,
+            message_id=msg.message_id,
             reply_markup=reply_markup,
             timeout=60,
         )
-        assert new_message.poll.id == message.poll.id
+        assert new_message.poll.id == msg.poll.id
         assert new_message.poll.is_closed
 
     @flaky(3, 1)
@@ -1955,6 +1953,22 @@ class TestBot:
         data.update({'invite_link': 'https://invite.link'})
         with pytest.raises(ValueError, match="`member_limit` can't be specified"):
             await bot.edit_chat_invite_link(**data)
+
+    @flaky(3, 1)
+    def test_edit_revoke_chat_invite_link_passing_link_objects(self, bot, channel_id):
+        invite_link = bot.create_chat_invite_link(chat_id=channel_id)
+        assert invite_link.name is None
+
+        edited_link = bot.edit_chat_invite_link(
+            chat_id=channel_id, invite_link=invite_link, name='some_name'
+        )
+        assert edited_link == invite_link
+        assert edited_link.name == 'some_name'
+
+        revoked_link = bot.revoke_chat_invite_link(chat_id=channel_id, invite_link=edited_link)
+        assert revoked_link.invite_link == edited_link.invite_link
+        assert revoked_link.is_revoked is True
+        assert revoked_link.name == 'some_name'
 
     @flaky(3, 1)
     @pytest.mark.parametrize('creates_join_request', [True, False])

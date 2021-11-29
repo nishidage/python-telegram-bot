@@ -1955,17 +1955,20 @@ class TestBot:
             await bot.edit_chat_invite_link(**data)
 
     @flaky(3, 1)
-    def test_edit_revoke_chat_invite_link_passing_link_objects(self, bot, channel_id):
-        invite_link = bot.create_chat_invite_link(chat_id=channel_id)
+    @pytest.mark.asyncio
+    async def test_edit_revoke_chat_invite_link_passing_link_objects(self, bot, channel_id):
+        invite_link = await bot.create_chat_invite_link(chat_id=channel_id)
         assert invite_link.name is None
 
-        edited_link = bot.edit_chat_invite_link(
+        edited_link = await bot.edit_chat_invite_link(
             chat_id=channel_id, invite_link=invite_link, name='some_name'
         )
         assert edited_link == invite_link
         assert edited_link.name == 'some_name'
 
-        revoked_link = bot.revoke_chat_invite_link(chat_id=channel_id, invite_link=edited_link)
+        revoked_link = await bot.revoke_chat_invite_link(
+            chat_id=channel_id, invite_link=edited_link
+        )
         assert revoked_link.invite_link == edited_link.invite_link
         assert revoked_link.is_revoked is True
         assert revoked_link.name == 'some_name'

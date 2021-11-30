@@ -89,6 +89,8 @@ class HTTPXRequest(BaseRequest):
             max_connections=connection_pool_size, max_keepalive_connections=connection_pool_size
         )
 
+        # only use `proxy_url` if not `None`
+
         # TODO p0: Test client with proxy!
         # TODO p2: Document that this can also be specified via env vars
         #          https://www.python-httpx.org/advanced/#environment-variables

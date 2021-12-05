@@ -23,6 +23,18 @@
 """
 from typing import Tuple, Union, Optional
 
+__all__ = (
+    'BadRequest',
+    'ChatMigrated',
+    'Conflict',
+    'InvalidToken',
+    'NetworkError',
+    'PassportDecryptionError',
+    'RetryAfter',
+    'TelegramError',
+    'TimedOut',
+)
+
 
 def _lstrip_str(in_s: str, lstr: str) -> str:
     """

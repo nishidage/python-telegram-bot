@@ -249,7 +249,7 @@ class CallbackContext(Generic[BT, UD, CD, BD]):
     def from_error(
         cls: Type['CCT'],
         update: object,
-        error: Exception,
+        error: BaseException,
         dispatcher: 'Dispatcher[BT, CCT, UD, CD, BD, JQ, PT]',
         async_args: Union[List, Tuple] = None,
         async_kwargs: Dict[str, object] = None,

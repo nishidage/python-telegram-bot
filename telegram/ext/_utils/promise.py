@@ -80,10 +80,10 @@ class Promise:
         self._result: Optional[RT] = None
         self._exception: Optional[Exception] = None
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Calls the :attr:`pooled_function` callable."""
         try:
-            self._result = self.pooled_function(*self.args, **self.kwargs)
+            self._result = await self.pooled_function(*self.args, **self.kwargs)
 
         except Exception as exc:
             self._exception = exc
@@ -100,8 +100,8 @@ class Promise:
                     )
                     logger.warning("Full traceback:", exc_info=exc)
 
-    def __call__(self) -> None:
-        self.run()
+    async def __call__(self) -> None:
+        await self.run()
 
     def result(self, timeout: float = None) -> Optional[RT]:
         """Return the result of the ``Promise``.

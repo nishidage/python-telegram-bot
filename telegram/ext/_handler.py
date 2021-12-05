@@ -18,11 +18,11 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains the base class for handlers as used by the Dispatcher."""
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar, Union, Generic
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union, Generic
 
 from telegram._utils.defaultvalue import DefaultValue, DEFAULT_FALSE
 from telegram.ext._utils.promise import Promise
-from telegram.ext._utils.types import CCT
+from telegram.ext._utils.types import CCT, HandlerCallback
 from telegram.ext._extbot import ExtBot
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class Handler(Generic[UT, CCT], ABC):
 
     def __init__(
         self,
-        callback: Callable[[UT, CCT], RT],
+        callback: HandlerCallback[UT, CCT, RT],
         run_async: Union[bool, DefaultValue] = DEFAULT_FALSE,
     ):
         self.callback = callback
@@ -121,7 +121,7 @@ class Handler(Generic[UT, CCT], ABC):
 
         self.collect_additional_context(context, update, dispatcher, check_result)
         if run_async:
-            return dispatcher.run_async(self.callback, update, context, update=update)
+            return dispatcher.run_asyncio(self.callback, update, context, update=update)
         return self.callback(update, context)
 
     def collect_additional_context(

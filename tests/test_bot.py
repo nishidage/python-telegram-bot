@@ -107,7 +107,7 @@ async def message(bot, chat_id):
 @pytest.mark.asyncio
 async def media_message(bot, chat_id):
     with data_file('telegram.ogg').open('rb') as f:
-        return await bot.send_voice(chat_id, voice=f, caption='my caption', timeout=10)
+        return await bot.send_voice(chat_id, voice=f, caption='my caption', read_timeout=10)
 
 
 @pytest.fixture(scope='class')
@@ -269,7 +269,7 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_unknown_kwargs(self, bot, monkeypatch):
-        async def post(url, request_data: RequestData, read_timeout):
+        async def post(url, request_data: RequestData, *args, **kwargs):
             data = request_data.json_parameters
             if not all([data['unknown_kwarg_1'] == '7', data['unknown_kwarg_2'] == '5']):
                 pytest.fail('got wrong parameters')
@@ -400,7 +400,7 @@ class TestBot:
             # check that tg.Bot does the right thing
             # make_assertion basically checks everything that happens in
             # Bot._insert_defaults and Bot._insert_defaults_for_ilq_results
-            async def make_assertion(url, request_data: RequestData, read_timeout=None):
+            async def make_assertion(url, request_data: RequestData, *args, **kwargs):
                 json_data = request_data.parameters
 
                 # Check regular kwargs
@@ -413,9 +413,7 @@ class TestBot:
                     elif k == 'media' and isinstance(v, list):
                         if any(isinstance(med.get('parse_mode'), DefaultValue) for med in v):
                             pytest.fail('One of the media items has a DefaultValue parse_mode')
-                # Check timeout
-                if isinstance(read_timeout, DefaultValue):
-                    pytest.fail('Parameter read_timeout was passed as DefaultValue to request')
+
                 # Check inline query results
                 if bot_method_name.lower().replace('_', '') == 'answerinlinequery':
                     for result_dict in json_data['results']:
@@ -611,7 +609,7 @@ class TestBot:
             options=answers,
             is_anonymous=False,
             allows_multiple_answers=True,
-            timeout=60,
+            read_timeout=60,
         )
 
         assert message.poll
@@ -630,7 +628,7 @@ class TestBot:
             chat_id=super_group_id,
             message_id=message.message_id,
             reply_markup=reply_markup,
-            timeout=60,
+            read_timeout=60,
         )
         assert isinstance(poll, Poll)
         assert poll.is_closed
@@ -684,7 +682,7 @@ class TestBot:
             options=answers,
             is_anonymous=False,
             allows_multiple_answers=True,
-            timeout=60,
+            read_timeout=60,
             open_period=open_period,
             close_date=close_date,
         )
@@ -693,7 +691,7 @@ class TestBot:
             chat_id=super_group_id,
             message_id=message.message_id,
             reply_markup=reply_markup,
-            timeout=60,
+            read_timeout=60,
         )
         assert new_message.poll.id == message.poll.id
         assert new_message.poll.is_closed
@@ -715,7 +713,7 @@ class TestBot:
             question=question,
             options=answers,
             close_date=close_date,
-            timeout=60,
+            read_timeout=60,
         )
         # Sometimes there can be a few seconds delay, so don't let the test fail due to that-
         msg.poll.close_date = msg.poll.close_date.astimezone(aware_close_date.tzinfo)
@@ -727,7 +725,7 @@ class TestBot:
             chat_id=super_group_id,
             message_id=msg.message_id,
             reply_markup=reply_markup,
-            timeout=60,
+            read_timeout=60,
         )
         assert new_message.poll.id == msg.poll.id
         assert new_message.poll.is_closed
@@ -923,7 +921,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'cache_time': 300,
                 'results': [
@@ -966,7 +964,7 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_answer_inline_query_no_default_parse_mode(self, monkeypatch, bot):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'cache_time': 300,
                 'results': [
@@ -1013,7 +1011,7 @@ class TestBot:
     @pytest.mark.parametrize('default_bot', [{'parse_mode': 'Markdown'}], indirect=True)
     @pytest.mark.asyncio
     async def test_answer_inline_query_default_parse_mode(self, monkeypatch, default_bot):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'cache_time': 300,
                 'results': [
@@ -1085,7 +1083,7 @@ class TestBot:
         expected_next_offset,
     ):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             results = data['results']
             length_matches = len(results) == num_results
@@ -1102,7 +1100,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query_current_offset_2(self, monkeypatch, bot, inline_results):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             results = data['results']
             length_matches = len(results) == InlineQueryLimit.RESULTS
@@ -1116,7 +1114,7 @@ class TestBot:
 
         inline_results = inline_results[:30]
 
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             results = data['results']
             length_matches = len(results) == 30
@@ -1131,7 +1129,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_inline_query_current_offset_callback(self, monkeypatch, bot, caplog):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             results = data['results']
             length = len(results) == 5
@@ -1145,7 +1143,7 @@ class TestBot:
             1234, results=inline_results_callback, current_offset=1
         )
 
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             results = data['results']
             length = results == []
@@ -1195,7 +1193,7 @@ class TestBot:
     # TODO: Needs improvement. No feasible way to test until bots can add members.
     @pytest.mark.asyncio
     async def test_ban_chat_member(self, monkeypatch, bot):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.json_parameters
             chat_id = data['chat_id'] == '2'
             user_id = data['user_id'] == '32'
@@ -1217,7 +1215,7 @@ class TestBot:
         until = dtm.datetime(2020, 1, 11, 16, 13)
         until_timestamp = to_timestamp(until, tzinfo=tz_bot.defaults.tzinfo)
 
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
@@ -1234,7 +1232,7 @@ class TestBot:
     @pytest.mark.parametrize('only_if_banned', [True, False, None])
     @pytest.mark.asyncio
     async def test_unban_chat_member(self, monkeypatch, bot, only_if_banned):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
@@ -1247,7 +1245,7 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_set_chat_permissions(self, monkeypatch, bot, chat_permissions):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.json_parameters
             chat_id = data['chat_id'] == '2'
             permissions = data['permissions'] == chat_permissions.to_json()
@@ -1259,7 +1257,7 @@ class TestBot:
 
     @pytest.mark.asyncio
     async def test_set_chat_administrator_custom_title(self, monkeypatch, bot):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             chat_id = data['chat_id'] == 2
             user_id = data['user_id'] == 32
@@ -1273,7 +1271,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_callback_query(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'callback_query_id': 23,
                 'show_alert': True,
@@ -1556,7 +1554,7 @@ class TestBot:
     async def test_set_webhook_delete_webhook_drop_pending_updates(
         self, bot, drop_pending_updates, monkeypatch
     ):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.json_parameters
             return bool(data.get('drop_pending_updates')) == drop_pending_updates
 
@@ -1773,7 +1771,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_shipping_query_ok(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'shipping_query_id': 1,
                 'ok': True,
@@ -1789,7 +1787,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_shipping_query_error_message(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'shipping_query_id': 1,
                 'error_message': 'Not enough fish',
@@ -1822,7 +1820,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_pre_checkout_query_ok(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {'pre_checkout_query_id': 1, 'ok': True}
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -1831,7 +1829,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_answer_pre_checkout_query_error_message(self, monkeypatch, bot):
         # For now just test that our internals pass the correct data
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters == {
                 'pre_checkout_query_id': 1,
                 'error_message': 'Not enough fish',
@@ -1865,7 +1863,7 @@ class TestBot:
         until = dtm.datetime(2020, 1, 11, 16, 13)
         until_timestamp = to_timestamp(until, tzinfo=tz_bot.defaults.tzinfo)
 
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters.get('until_date', until_timestamp) == until_timestamp
 
         monkeypatch.setattr(tz_bot.request, 'post', make_assertion)
@@ -2174,7 +2172,7 @@ class TestBot:
             chat_id=super_group_id,
             message_id=message1.message_id,
             disable_notification=True,
-            timeout=10,
+            read_timeout=10,
         )
         time.sleep(1)
 
@@ -2182,13 +2180,13 @@ class TestBot:
             chat_id=super_group_id,
             message_id=message2.message_id,
             disable_notification=True,
-            timeout=10,
+            read_timeout=10,
         )
         await bot.pin_chat_message(
             chat_id=super_group_id,
             message_id=message3.message_id,
             disable_notification=True,
-            timeout=10,
+            read_timeout=10,
         )
         time.sleep(1)
 
@@ -2198,16 +2196,16 @@ class TestBot:
         assert await bot.unpin_chat_message(
             super_group_id,
             message_id=message2.message_id,
-            timeout=10,
+            read_timeout=10,
         )
         assert await bot.unpin_chat_message(
             super_group_id,
-            timeout=10,
+            read_timeout=10,
         )
 
         assert await bot.unpin_all_chat_messages(
             super_group_id,
-            timeout=10,
+            read_timeout=10,
         )
 
     # get_sticker_set, upload_sticker_file, create_new_sticker_set, add_sticker_to_set,
@@ -2234,11 +2232,13 @@ class TestBot:
 
         # Test file uploading
         with pytest.raises(OkException):
-            await bot.send_photo(chat_id, data_file('telegram.jpg').open('rb'), timeout=timeout)
+            await bot.send_photo(
+                chat_id, data_file('telegram.jpg').open('rb'), read_timeout=timeout
+            )
 
         # Test JSON submission
         with pytest.raises(OkException):
-            await bot.get_chat_administrators(chat_id, timeout=timeout)
+            await bot.get_chat_administrators(chat_id, read_timeout=timeout)
 
     @pytest.mark.asyncio
     async def test_timeout_propagation_implicit(self, monkeypatch, bot, chat_id):
@@ -2378,7 +2378,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_log_out(self, monkeypatch, bot):
         # We don't actually make a request as to not break the test setup
-        async def assertion(url, request_data: RequestData, read_timeout):
+        async def assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters == {} and url.split('/')[-1] == 'logOut'
 
         monkeypatch.setattr(bot.request, 'post', assertion)
@@ -2388,7 +2388,7 @@ class TestBot:
     @pytest.mark.asyncio
     async def test_close(self, monkeypatch, bot):
         # We don't actually make a request as to not break the test setup
-        async def assertion(url, request_data: RequestData, read_timeout):
+        async def assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters == {} and url.split('/')[-1] == 'close'
 
         monkeypatch.setattr(bot.request, 'post', assertion)
@@ -2406,7 +2406,7 @@ class TestBot:
             [[InlineKeyboardButton(text="test", callback_data="test2")]]
         )
 
-        async def post(url, request_data: RequestData, read_timeout):
+        async def post(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             if not all(
                 [
@@ -2609,8 +2609,8 @@ class TestBot:
         async def make_assertion(
             endpoint,
             data=None,
-            timeout=None,
-            api_kwargs=None,
+            *args,
+            **kwargs,
         ):
             inline_keyboard = data['results'][0]['reply_markup'].inline_keyboard
             assertion_1 = inline_keyboard[0][1] == no_replace_button

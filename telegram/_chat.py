@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, List, Optional, ClassVar, Union, Tuple, Any
 
 from telegram import ChatPhoto, TelegramObject, constants
 from telegram._utils.types import JSONDict, FileInput, ODVInput, DVInput
-from telegram._utils.defaultvalue import DEFAULT_NONE, DEFAULT_20
+from telegram._utils.defaultvalue import DEFAULT_NONE
 
 from telegram._chatpermissions import ChatPermissions
 from telegram._chatlocation import ChatLocation
@@ -278,7 +278,12 @@ class Chat(TelegramObject):
         return cls(bot=bot, **data)
 
     async def leave(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
 
@@ -292,12 +297,20 @@ class Chat(TelegramObject):
         """
         return await self.get_bot().leave_chat(
             chat_id=self.id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def get_administrators(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> List['ChatMember']:
         """Shortcut for::
 
@@ -315,12 +328,20 @@ class Chat(TelegramObject):
         """
         return await self.get_bot().get_chat_administrators(
             chat_id=self.id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def get_member_count(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> int:
         """Shortcut for::
 
@@ -334,14 +355,20 @@ class Chat(TelegramObject):
         """
         return await self.get_bot().get_chat_member_count(
             chat_id=self.id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def get_member(
         self,
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> 'ChatMember':
         """Shortcut for::
@@ -357,14 +384,20 @@ class Chat(TelegramObject):
         return await self.get_bot().get_chat_member(
             chat_id=self.id,
             user_id=user_id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def ban_member(
         self,
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         until_date: Union[int, datetime] = None,
         api_kwargs: JSONDict = None,
         revoke_messages: bool = None,
@@ -382,7 +415,10 @@ class Chat(TelegramObject):
         return await self.get_bot().ban_chat_member(
             chat_id=self.id,
             user_id=user_id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             until_date=until_date,
             api_kwargs=api_kwargs,
             revoke_messages=revoke_messages,
@@ -391,7 +427,10 @@ class Chat(TelegramObject):
     async def unban_member(
         self,
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         only_if_banned: bool = None,
     ) -> bool:
@@ -408,7 +447,10 @@ class Chat(TelegramObject):
         return await self.get_bot().unban_chat_member(
             chat_id=self.id,
             user_id=user_id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             only_if_banned=only_if_banned,
         )
@@ -424,7 +466,10 @@ class Chat(TelegramObject):
         can_restrict_members: bool = None,
         can_pin_messages: bool = None,
         can_promote_members: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         is_anonymous: bool = None,
         can_manage_chat: bool = None,
@@ -454,7 +499,10 @@ class Chat(TelegramObject):
             can_restrict_members=can_restrict_members,
             can_pin_messages=can_pin_messages,
             can_promote_members=can_promote_members,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             is_anonymous=is_anonymous,
             can_manage_chat=can_manage_chat,
@@ -466,7 +514,10 @@ class Chat(TelegramObject):
         user_id: Union[str, int],
         permissions: ChatPermissions,
         until_date: Union[int, datetime] = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -487,14 +538,20 @@ class Chat(TelegramObject):
             user_id=user_id,
             permissions=permissions,
             until_date=until_date,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def set_permissions(
         self,
         permissions: ChatPermissions,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -511,7 +568,10 @@ class Chat(TelegramObject):
         return await self.get_bot().set_chat_permissions(
             chat_id=self.id,
             permissions=permissions,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -519,7 +579,10 @@ class Chat(TelegramObject):
         self,
         user_id: Union[int, str],
         custom_title: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -537,7 +600,10 @@ class Chat(TelegramObject):
             chat_id=self.id,
             user_id=user_id,
             custom_title=custom_title,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -545,7 +611,10 @@ class Chat(TelegramObject):
         self,
         message_id: int,
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -565,13 +634,19 @@ class Chat(TelegramObject):
             chat_id=self.id,
             message_id=message_id,
             disable_notification=disable_notification,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def unpin_message(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         message_id: int = None,
     ) -> bool:
@@ -590,14 +665,20 @@ class Chat(TelegramObject):
         """
         return await self.get_bot().unpin_chat_message(
             chat_id=self.id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             message_id=message_id,
         )
 
     async def unpin_all_messages(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -615,7 +696,10 @@ class Chat(TelegramObject):
         """
         return await self.get_bot().unpin_all_chat_messages(
             chat_id=self.id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -627,7 +711,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -650,7 +737,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
             entities=entities,
@@ -663,7 +753,10 @@ class Chat(TelegramObject):
         ],
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> List['Message']:
@@ -682,7 +775,10 @@ class Chat(TelegramObject):
             media=media,
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
         )
@@ -690,7 +786,10 @@ class Chat(TelegramObject):
     async def send_chat_action(
         self,
         action: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -706,7 +805,10 @@ class Chat(TelegramObject):
         return await self.get_bot().send_chat_action(
             chat_id=self.id,
             action=action,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -720,7 +822,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -744,7 +849,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             parse_mode=parse_mode,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
@@ -760,7 +868,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         contact: 'Contact' = None,
         vcard: str = None,
         api_kwargs: JSONDict = None,
@@ -784,7 +895,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             contact=contact,
             vcard=vcard,
             api_kwargs=api_kwargs,
@@ -801,7 +915,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
@@ -829,7 +946,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             parse_mode=parse_mode,
             thumb=thumb,
             api_kwargs=api_kwargs,
@@ -846,7 +966,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
@@ -872,7 +995,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             parse_mode=parse_mode,
             thumb=thumb,
             api_kwargs=api_kwargs,
@@ -886,7 +1012,10 @@ class Chat(TelegramObject):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         emoji: str = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -906,7 +1035,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             emoji=emoji,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
@@ -918,7 +1050,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
@@ -938,7 +1073,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
         )
@@ -967,7 +1105,10 @@ class Chat(TelegramObject):
         provider_data: Union[str, object] = None,
         send_phone_number_to_provider: bool = None,
         send_email_to_provider: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         max_tip_amount: int = None,
@@ -1015,7 +1156,10 @@ class Chat(TelegramObject):
             provider_data=provider_data,
             send_phone_number_to_provider=send_phone_number_to_provider,
             send_email_to_provider=send_email_to_provider,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
             max_tip_amount=max_tip_amount,
@@ -1029,7 +1173,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         location: 'Location' = None,
         live_period: int = None,
         api_kwargs: JSONDict = None,
@@ -1055,7 +1202,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             location=location,
             live_period=live_period,
             api_kwargs=api_kwargs,
@@ -1077,7 +1227,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -1105,7 +1258,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
             caption_entities=caption_entities,
@@ -1118,7 +1274,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> 'Message':
@@ -1138,7 +1297,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
         )
@@ -1153,7 +1315,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         venue: 'Venue' = None,
         foursquare_type: str = None,
         api_kwargs: JSONDict = None,
@@ -1181,7 +1346,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             venue=venue,
             foursquare_type=foursquare_type,
             api_kwargs=api_kwargs,
@@ -1198,7 +1366,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         width: int = None,
         height: int = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
@@ -1227,7 +1398,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             width=width,
             height=height,
             parse_mode=parse_mode,
@@ -1247,7 +1421,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -1271,7 +1448,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             thumb=thumb,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
@@ -1286,7 +1466,10 @@ class Chat(TelegramObject):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -1311,7 +1494,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             parse_mode=parse_mode,
             api_kwargs=api_kwargs,
             allow_sending_without_reply=allow_sending_without_reply,
@@ -1332,7 +1518,10 @@ class Chat(TelegramObject):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         explanation: str = None,
         explanation_parse_mode: ODVInput[str] = DEFAULT_NONE,
         open_period: int = None,
@@ -1363,7 +1552,10 @@ class Chat(TelegramObject):
             disable_notification=disable_notification,
             reply_to_message_id=reply_to_message_id,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             explanation=explanation,
             explanation_parse_mode=explanation_parse_mode,
             open_period=open_period,
@@ -1384,7 +1576,10 @@ class Chat(TelegramObject):
         reply_to_message_id: int = None,
         allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> 'MessageId':
         """Shortcut for::
@@ -1408,7 +1603,10 @@ class Chat(TelegramObject):
             reply_to_message_id=reply_to_message_id,
             allow_sending_without_reply=allow_sending_without_reply,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1423,7 +1621,10 @@ class Chat(TelegramObject):
         reply_to_message_id: int = None,
         allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: 'ReplyMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> 'MessageId':
         """Shortcut for::
@@ -1447,13 +1648,19 @@ class Chat(TelegramObject):
             reply_to_message_id=reply_to_message_id,
             allow_sending_without_reply=allow_sending_without_reply,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def export_invite_link(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> str:
         """Shortcut for::
@@ -1470,14 +1677,22 @@ class Chat(TelegramObject):
 
         """
         return await self.get_bot().export_chat_invite_link(
-            chat_id=self.id, timeout=timeout, api_kwargs=api_kwargs
+            chat_id=self.id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     async def create_invite_link(
         self,
         expire_date: Union[int, datetime] = None,
         member_limit: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         name: str = None,
         creates_join_request: bool = None,
@@ -1503,7 +1718,10 @@ class Chat(TelegramObject):
             chat_id=self.id,
             expire_date=expire_date,
             member_limit=member_limit,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             name=name,
             creates_join_request=creates_join_request,
@@ -1514,7 +1732,10 @@ class Chat(TelegramObject):
         invite_link: Union[str, 'ChatInviteLink'],
         expire_date: Union[int, datetime] = None,
         member_limit: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         name: str = None,
         creates_join_request: bool = None,
@@ -1540,7 +1761,10 @@ class Chat(TelegramObject):
             invite_link=invite_link,
             expire_date=expire_date,
             member_limit=member_limit,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             name=name,
             creates_join_request=creates_join_request,
@@ -1549,7 +1773,10 @@ class Chat(TelegramObject):
     async def revoke_invite_link(
         self,
         invite_link: Union[str, 'ChatInviteLink'],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> 'ChatInviteLink':
         """Shortcut for::
@@ -1566,13 +1793,22 @@ class Chat(TelegramObject):
 
         """
         return await self.get_bot().revoke_chat_invite_link(
-            chat_id=self.id, invite_link=invite_link, timeout=timeout, api_kwargs=api_kwargs
+            chat_id=self.id,
+            invite_link=invite_link,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     async def approve_join_request(
         self,
         user_id: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -1589,13 +1825,22 @@ class Chat(TelegramObject):
 
         """
         return await self.get_bot().approve_chat_join_request(
-            chat_id=self.id, user_id=user_id, timeout=timeout, api_kwargs=api_kwargs
+            chat_id=self.id,
+            user_id=user_id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     async def decline_join_request(
         self,
         user_id: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -1612,5 +1857,11 @@ class Chat(TelegramObject):
 
         """
         return await self.get_bot().decline_chat_join_request(
-            chat_id=self.id, user_id=user_id, timeout=timeout, api_kwargs=api_kwargs
+            chat_id=self.id,
+            user_id=user_id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )

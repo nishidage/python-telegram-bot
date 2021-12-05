@@ -147,7 +147,10 @@ class CallbackQuery(TelegramObject):
         show_alert: bool = False,
         url: str = None,
         cache_time: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -167,7 +170,10 @@ class CallbackQuery(TelegramObject):
             show_alert=show_alert,
             url=url,
             cache_time=cache_time,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -177,7 +183,10 @@ class CallbackQuery(TelegramObject):
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
     ) -> Union[Message, bool]:
@@ -205,7 +214,10 @@ class CallbackQuery(TelegramObject):
                 parse_mode=parse_mode,
                 disable_web_page_preview=disable_web_page_preview,
                 reply_markup=reply_markup,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 entities=entities,
                 chat_id=None,
@@ -216,7 +228,10 @@ class CallbackQuery(TelegramObject):
             parse_mode=parse_mode,
             disable_web_page_preview=disable_web_page_preview,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             entities=entities,
         )
@@ -225,7 +240,10 @@ class CallbackQuery(TelegramObject):
         self,
         caption: str = None,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -253,7 +271,10 @@ class CallbackQuery(TelegramObject):
                 caption=caption,
                 inline_message_id=self.inline_message_id,
                 reply_markup=reply_markup,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 parse_mode=parse_mode,
                 api_kwargs=api_kwargs,
                 caption_entities=caption_entities,
@@ -263,7 +284,10 @@ class CallbackQuery(TelegramObject):
         return await self.message.edit_caption(
             caption=caption,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             parse_mode=parse_mode,
             api_kwargs=api_kwargs,
             caption_entities=caption_entities,
@@ -272,7 +296,10 @@ class CallbackQuery(TelegramObject):
     async def edit_message_reply_markup(
         self,
         reply_markup: Optional['InlineKeyboardMarkup'] = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """Shortcut for either::
@@ -305,14 +332,20 @@ class CallbackQuery(TelegramObject):
             return await self.get_bot().edit_message_reply_markup(
                 reply_markup=reply_markup,
                 inline_message_id=self.inline_message_id,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 chat_id=None,
                 message_id=None,
             )
         return await self.message.edit_reply_markup(
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -320,7 +353,10 @@ class CallbackQuery(TelegramObject):
         self,
         media: 'InputMedia',
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """Shortcut for either::
@@ -345,7 +381,10 @@ class CallbackQuery(TelegramObject):
                 inline_message_id=self.inline_message_id,
                 media=media,
                 reply_markup=reply_markup,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 chat_id=None,
                 message_id=None,
@@ -353,7 +392,10 @@ class CallbackQuery(TelegramObject):
         return await self.message.edit_media(
             media=media,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -363,7 +405,10 @@ class CallbackQuery(TelegramObject):
         longitude: float = None,
         location: Location = None,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         horizontal_accuracy: float = None,
         heading: int = None,
@@ -396,7 +441,10 @@ class CallbackQuery(TelegramObject):
                 longitude=longitude,
                 location=location,
                 reply_markup=reply_markup,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 horizontal_accuracy=horizontal_accuracy,
                 heading=heading,
@@ -409,7 +457,10 @@ class CallbackQuery(TelegramObject):
             longitude=longitude,
             location=location,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
             horizontal_accuracy=horizontal_accuracy,
             heading=heading,
@@ -419,7 +470,10 @@ class CallbackQuery(TelegramObject):
     async def stop_message_live_location(
         self,
         reply_markup: 'InlineKeyboardMarkup' = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """Shortcut for either::
@@ -446,14 +500,20 @@ class CallbackQuery(TelegramObject):
             return await self.get_bot().stop_message_live_location(
                 inline_message_id=self.inline_message_id,
                 reply_markup=reply_markup,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 chat_id=None,
                 message_id=None,
             )
         return await self.message.stop_live_location(
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -463,7 +523,10 @@ class CallbackQuery(TelegramObject):
         score: int,
         force: bool = None,
         disable_edit_message: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """Shortcut for either::
@@ -490,7 +553,10 @@ class CallbackQuery(TelegramObject):
                 score=score,
                 force=force,
                 disable_edit_message=disable_edit_message,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 chat_id=None,
                 message_id=None,
@@ -500,14 +566,20 @@ class CallbackQuery(TelegramObject):
             score=score,
             force=force,
             disable_edit_message=disable_edit_message,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def get_game_high_scores(
         self,
         user_id: Union[int, str],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> List['GameHighScore']:
         """Shortcut for either::
@@ -530,20 +602,29 @@ class CallbackQuery(TelegramObject):
             return await self.get_bot().get_game_high_scores(
                 inline_message_id=self.inline_message_id,
                 user_id=user_id,
-                timeout=timeout,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
                 chat_id=None,
                 message_id=None,
             )
         return await self.message.get_game_high_scores(
             user_id=user_id,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def delete_message(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -558,14 +639,20 @@ class CallbackQuery(TelegramObject):
 
         """
         return await self.message.delete(
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def pin_message(
         self,
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -581,13 +668,19 @@ class CallbackQuery(TelegramObject):
         """
         return await self.message.pin(
             disable_notification=disable_notification,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def unpin_message(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Shortcut for::
@@ -602,7 +695,10 @@ class CallbackQuery(TelegramObject):
 
         """
         return await self.message.unpin(
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -616,7 +712,10 @@ class CallbackQuery(TelegramObject):
         reply_to_message_id: int = None,
         allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> 'MessageId':
         """Shortcut for::
@@ -644,7 +743,10 @@ class CallbackQuery(TelegramObject):
             reply_to_message_id=reply_to_message_id,
             allow_sending_without_reply=allow_sending_without_reply,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 

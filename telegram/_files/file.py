@@ -97,7 +97,13 @@ class File(TelegramObject):
         self._id_attrs = (self.file_unique_id,)
 
     async def download(
-        self, custom_path: FilePathInput = None, out: IO = None, timeout: int = None
+        self,
+        custom_path: FilePathInput = None,
+        out: IO = None,
+        read_timeout: float = None,
+        connect_timeout: float = None,
+        write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> Union[Path, IO]:
         """
         Download this file. By default, the file is saved in the current working directory with its
@@ -167,7 +173,13 @@ class File(TelegramObject):
         else:
             filename = Path.cwd() / self.file_id
 
-        buf = await self.get_bot().request.retrieve(url, timeout=timeout)
+        buf = await self.get_bot().request.retrieve(
+            url,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+        )
         if self._credentials:
             buf = decrypt(
                 b64decode(self._credentials.secret), b64decode(self._credentials.hash), buf

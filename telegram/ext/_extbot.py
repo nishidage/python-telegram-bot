@@ -127,9 +127,7 @@ class ExtBot(Bot):
         # This is a property because defaults shouldn't be changed at runtime
         return self._defaults
 
-    def _insert_defaults(
-        self, data: Dict[str, object], timeout: ODVInput[float]
-    ) -> Optional[float]:
+    def _insert_defaults(self, data: Dict[str, object]) -> None:
         """Inserts the defaults values for optional kwargs for which tg.ext.Defaults provides
         convenience functionality, i.e. the kwargs with a tg.utils.helpers.DefaultValue default
 
@@ -165,17 +163,6 @@ class ExtBot(Bot):
                 for media in val:
                     if media.parse_mode is DEFAULT_NONE:
                         media.parse_mode = self.defaults.parse_mode if self.defaults else None
-
-        effective_timeout = DefaultValue.get_value(timeout)
-        if isinstance(timeout, DefaultValue):
-            # If we get here, we use Defaults.timeout, unless that's not set, which is the
-            # case if isinstance(self.defaults.timeout, DefaultValue)
-            return (
-                self.defaults.timeout
-                if self.defaults and not isinstance(self.defaults.timeout, DefaultValue)
-                else effective_timeout
-            )
-        return effective_timeout
 
     def _replace_keyboard(self, reply_markup: Optional[ReplyMarkup]) -> Optional[ReplyMarkup]:
         # If the reply_markup is an inline keyboard and we allow arbitrary callback data, let the
@@ -254,7 +241,10 @@ class ExtBot(Bot):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[bool, Message]:
         # We override this method to call self._replace_keyboard and self._insert_callback_data.
@@ -266,7 +256,10 @@ class ExtBot(Bot):
             disable_notification=disable_notification,
             reply_markup=self._replace_keyboard(reply_markup),
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
         if isinstance(result, Message):
@@ -277,16 +270,21 @@ class ExtBot(Bot):
         self,
         offset: int = None,
         limit: int = 100,
-        timeout: float = 0,
-        read_latency: float = 2.0,
+        timeout: int = 0,
+        read_timeout: float = 2,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         allowed_updates: List[str] = None,
         api_kwargs: JSONDict = None,
     ) -> List[Update]:
         updates = await super().get_updates(
             offset=offset,
             limit=limit,
-            timeout=timeout,
-            read_latency=read_latency,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             allowed_updates=allowed_updates,
             api_kwargs=api_kwargs,
         )
@@ -359,7 +357,10 @@ class ExtBot(Bot):
         chat_id: Union[int, str],
         message_id: int,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Poll:
         # We override this method to call self._replace_keyboard
@@ -367,7 +368,10 @@ class ExtBot(Bot):
             chat_id=chat_id,
             message_id=message_id,
             reply_markup=self._replace_keyboard(reply_markup),
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -383,7 +387,10 @@ class ExtBot(Bot):
         reply_to_message_id: int = None,
         allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> MessageId:
         # We override this method to call self._replace_keyboard
@@ -398,18 +405,31 @@ class ExtBot(Bot):
             reply_to_message_id=reply_to_message_id,
             allow_sending_without_reply=allow_sending_without_reply,
             reply_markup=self._replace_keyboard(reply_markup),
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     async def get_chat(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Chat:
         # We override this method to call self._insert_callback_data
-        result = await super().get_chat(chat_id=chat_id, timeout=timeout, api_kwargs=api_kwargs)
+        result = await super().get_chat(
+            chat_id=chat_id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return self._insert_callback_data(result)
 
     # updated camelCase aliases

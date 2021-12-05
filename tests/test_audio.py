@@ -46,7 +46,9 @@ def audio_file():
 async def audio(bot, chat_id):
     with data_file('telegram.mp3').open('rb') as f:
         thumb = data_file('thumb.jpg')
-        return (await bot.send_audio(chat_id, audio=f, timeout=50, thumb=thumb.open('rb'))).audio
+        return (
+            await bot.send_audio(chat_id, audio=f, read_timeout=50, thumb=thumb.open('rb'))
+        ).audio
 
 
 class TestAudio:
@@ -124,7 +126,7 @@ class TestAudio:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_audio_custom_filename(self, bot, chat_id, audio_file, monkeypatch):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -176,7 +178,7 @@ class TestAudio:
 
     @pytest.mark.asyncio
     async def test_send_with_audio(self, monkeypatch, bot, chat_id, audio):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['audio'] == audio.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

@@ -46,7 +46,7 @@ def chatphoto_file():
 @pytest.mark.asyncio
 async def chat_photo(bot, super_group_id):
     async def func():
-        return (await bot.get_chat(super_group_id, timeout=50)).photo
+        return (await bot.get_chat(super_group_id, read_timeout=50)).photo
 
     return await expect_bad_request(
         func, 'Type of file mismatch', 'Telegram did not accept the file.'
@@ -99,7 +99,7 @@ class TestChatPhoto:
 
     @pytest.mark.asyncio
     async def test_send_with_chat_photo(self, monkeypatch, bot, super_group_id, chat_photo):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.parameters['photo'] == chat_photo.to_dict()
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

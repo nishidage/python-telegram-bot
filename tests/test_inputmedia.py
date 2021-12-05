@@ -471,7 +471,7 @@ class TestSendMediaGroup:
         video_file,  # noqa: F811
         monkeypatch,
     ):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             result = all(
                 field_tuple[0] == 'custom_filename'
                 for field_tuple in request_data.multipart_data.values()
@@ -495,7 +495,7 @@ class TestSendMediaGroup:
     async def test_send_media_group_with_thumbs(
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
-        async def make_assertion(method, url, request_data: RequestData, read_timeout):
+        async def make_assertion(method, url, request_data: RequestData, *args, **kwargs):
             files = request_data.multipart_data
             video_check = files[input_video.media.attach_name] == input_video.media.field_tuple
             thumb_check = files[input_video.thumb.attach_name] == input_video.thumb.field_tuple
@@ -598,10 +598,7 @@ class TestSendMediaGroup:
         self, bot, chat_id, video_file, photo_file, monkeypatch  # noqa: F811
     ):
         async def make_assertion(
-            method: str,
-            url: str,
-            request_data: RequestData = None,
-            read_timeout: float = None,
+            method: str, url: str, request_data: RequestData = None, *args, **kwargs
         ):
             files = request_data.multipart_data
             video_check = files[input_video.media.attach_name] == input_video.media.field_tuple

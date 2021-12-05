@@ -99,7 +99,7 @@ from telegram.constants import InlineQueryLimit
 from telegram.request import BaseRequest, RequestData
 from telegram.request._requestparameter import RequestParameter
 from telegram.request._httpxrequest import HTTPXRequest
-from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue, DEFAULT_20
+from telegram._utils.defaultvalue import DEFAULT_NONE, DefaultValue
 from telegram._utils.files import is_local_file, parse_file_input
 from telegram._utils.types import FileInput, JSONDict, ODVInput, DVInput
 
@@ -224,9 +224,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         return decorator
 
-    def _insert_defaults(  # pylint: disable=no-self-use
-        self, data: Dict[str, object], timeout: ODVInput[float]
-    ) -> Optional[float]:
+    def _insert_defaults(self, data: Dict[str, object]) -> None:  # pylint: disable=no-self-use
         """This method is here to make ext.Defaults work. Because we need to be able to tell
         e.g. `send_message(chat_id, text)` from `send_message(chat_id, text, parse_mode=None)`, the
         default values for `parse_mode` etc are not `None` but `DEFAULT_NONE`. While this *could*
@@ -257,14 +255,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             else:
                 data[key] = DefaultValue.get_value(val)
 
-        return DefaultValue.get_value(timeout)
-
     # JSONDict = Dict[str, Any]
     async def _post(
         self,
         endpoint: str,  # 'sendMessage', 'sendPhoto', 'getMe'
         data: JSONDict = None,  # {'chat_id': 123, 'text': 'Hello there!'}
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,  # {'new_param': whatever}
     ) -> Union[bool, JSONDict, None]:
         if data is None:
@@ -274,10 +273,7 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data.update(api_kwargs)
 
         # Insert is in-place, so no return value for data
-        if endpoint != 'getUpdates':
-            effective_timeout = self._insert_defaults(data, timeout)
-        else:
-            effective_timeout = cast(float, timeout)
+        self._insert_defaults(data)
 
         # Drop any None values because Telegram doesn't handle them well
         data = {key: value for key, value in data.items() if value is not None}
@@ -292,7 +288,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self.request.post(
             f'{self.base_url}/{endpoint}',
             request_data=request_data,
-            read_timeout=effective_timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
         )
 
     async def _send_message(
@@ -303,7 +302,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[bool, Message]:
         if reply_to_message_id is not None:
@@ -317,7 +319,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if reply_markup is not None:
             data['reply_markup'] = reply_markup
 
-        result = await self._post(endpoint, data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            endpoint,
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         if result is True:
             return result
@@ -457,7 +467,12 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
     @_log
     async def get_me(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> User:
         """A simple method for testing your bot's auth token. Requires no parameters.
 
@@ -476,7 +491,14 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        result = await self._post('getMe', timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getMe',
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         self._bot_user = User.de_json(result, self)  # type: ignore[return-value, arg-type]
         return self._bot_user  # type: ignore[return-value]
 
@@ -490,7 +512,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -549,7 +574,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -558,7 +586,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         message_id: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -594,7 +625,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'message_id': message_id}
-        result = await self._post('deleteMessage', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'deleteMessage',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return result  # type: ignore[return-value]
 
     @_log
@@ -604,7 +643,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         from_chat_id: Union[str, int],
         message_id: int,
         disable_notification: DVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Message:
         """Use this method to forward messages of any kind. Service messages can't be forwarded.
@@ -643,7 +685,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'forwardMessage',
             data,
             disable_notification=disable_notification,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -656,7 +701,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -734,7 +782,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -750,7 +801,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
@@ -857,7 +911,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -871,7 +928,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
@@ -968,7 +1028,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -980,7 +1043,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> Message:
@@ -1031,7 +1097,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1045,7 +1114,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         width: int = None,
         height: int = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
@@ -1159,7 +1231,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1173,7 +1248,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         thumb: FileInput = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -1258,7 +1336,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1276,7 +1357,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -1378,7 +1462,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1392,7 +1479,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -1478,7 +1568,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1491,7 +1584,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         ],
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> List[Message]:
@@ -1529,7 +1625,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if reply_to_message_id:
             data['reply_to_message_id'] = reply_to_message_id
 
-        result = await self._post('sendMediaGroup', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'sendMediaGroup',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return Message.de_list(result, self)  # type: ignore
 
@@ -1542,7 +1646,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         location: Location = None,
         live_period: int = None,
         api_kwargs: JSONDict = None,
@@ -1627,7 +1734,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1641,7 +1751,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         longitude: float = None,
         location: Location = None,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         horizontal_accuracy: float = None,
         heading: int = None,
@@ -1717,7 +1830,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'editMessageLiveLocation',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1728,7 +1844,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         message_id: int = None,
         inline_message_id: int = None,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """Use this method to stop updating a live location message sent by the bot or via the bot
@@ -1767,7 +1886,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'stopMessageLiveLocation',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1783,7 +1905,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         venue: Venue = None,
         foursquare_type: str = None,
         api_kwargs: JSONDict = None,
@@ -1879,7 +2004,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1893,7 +2021,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         contact: Contact = None,
         vcard: str = None,
         api_kwargs: JSONDict = None,
@@ -1965,7 +2096,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -1977,7 +2111,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: DVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
     ) -> Message:
@@ -2018,7 +2155,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2027,7 +2167,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         action: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -2056,7 +2199,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'action': action}
-        result = await self._post('sendChatAction', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'sendChatAction',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return result  # type: ignore[return-value]
 
     def _effective_inline_results(  # pylint: disable=no-self-use
@@ -2149,7 +2300,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         next_offset: str = None,
         switch_pm_text: str = None,
         switch_pm_parameter: str = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         current_offset: str = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
@@ -2235,7 +2389,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         return await self._post(  # type: ignore[return-value]
             'answerInlineQuery',
             data,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2245,7 +2402,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         user_id: Union[str, int],
         offset: int = None,
         limit: int = 100,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Optional[UserProfilePhotos]:
         """Use this method to get a list of profile pictures for a user.
@@ -2277,7 +2437,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['limit'] = limit
 
         result = await self._post(
-            'getUserProfilePhotos', data, timeout=timeout, api_kwargs=api_kwargs
+            'getUserProfilePhotos',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return UserProfilePhotos.de_json(result, self)  # type: ignore[return-value, arg-type]
@@ -2288,7 +2454,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         file_id: Union[
             str, Animation, Audio, ChatPhoto, Document, PhotoSize, Sticker, Video, VideoNote, Voice
         ],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> File:
         """
@@ -2333,7 +2502,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         data: JSONDict = {'file_id': file_id}
 
-        result = await self._post('getFile', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getFile',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         if result.get('file_path') and not is_local_file(  # type: ignore[union-attr]
             result['file_path']  # type: ignore[index]
@@ -2349,7 +2526,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         until_date: Union[int, datetime] = None,
         api_kwargs: JSONDict = None,
         revoke_messages: bool = None,
@@ -2399,7 +2579,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if revoke_messages is not None:
             data['revoke_messages'] = revoke_messages
 
-        result = await self._post('banChatMember', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'banChatMember',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -2408,7 +2596,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         only_if_banned: bool = None,
     ) -> bool:
@@ -2443,7 +2634,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if only_if_banned is not None:
             data['only_if_banned'] = only_if_banned
 
-        result = await self._post('unbanChatMember', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'unbanChatMember',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -2455,7 +2654,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         show_alert: bool = False,
         url: str = None,
         cache_time: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -2508,7 +2710,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['cache_time'] = cache_time
 
         result = await self._post(
-            'answerCallbackQuery', data, timeout=timeout, api_kwargs=api_kwargs
+            'answerCallbackQuery',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -2523,7 +2731,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         disable_web_page_preview: ODVInput[bool] = DEFAULT_NONE,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
     ) -> Union[Message, bool]:
@@ -2583,7 +2794,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'editMessageText',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2595,7 +2809,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         inline_message_id: int = None,
         caption: str = None,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         parse_mode: ODVInput[str] = DEFAULT_NONE,
         api_kwargs: JSONDict = None,
         caption_entities: Union[List['MessageEntity'], Tuple['MessageEntity', ...]] = None,
@@ -2659,7 +2876,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'editMessageCaption',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2671,7 +2891,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         message_id: int = None,
         inline_message_id: int = None,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """
@@ -2725,7 +2948,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'editMessageMedia',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2736,7 +2962,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         message_id: int = None,
         inline_message_id: int = None,
         reply_markup: Optional['InlineKeyboardMarkup'] = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """
@@ -2786,7 +3015,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             'editMessageReplyMarkup',
             data,
             reply_markup=reply_markup,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -2795,8 +3027,11 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         offset: int = None,
         limit: int = 100,
-        timeout: float = 0,
-        read_latency: float = 2.0,
+        timeout: int = 0,
+        read_timeout: float = 2,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         allowed_updates: List[str] = None,
         api_kwargs: JSONDict = None,
     ) -> List[Update]:
@@ -2862,7 +3097,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             await self._post(
                 'getUpdates',
                 data,
-                timeout=float(read_latency) + float(timeout),
+                read_timeout=read_timeout + timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
                 api_kwargs=api_kwargs,
             ),
         )
@@ -2879,7 +3117,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         url: str,
         certificate: FileInput = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         max_connections: int = 40,
         allowed_updates: List[str] = None,
         api_kwargs: JSONDict = None,
@@ -2962,14 +3203,25 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if drop_pending_updates:
             data['drop_pending_updates'] = drop_pending_updates
 
-        result = await self._post('setWebhook', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'setWebhook',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
     @_log
     async def delete_webhook(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         drop_pending_updates: bool = None,
     ) -> bool:
@@ -2998,7 +3250,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if drop_pending_updates:
             data['drop_pending_updates'] = drop_pending_updates
 
-        result = await self._post('deleteWebhook', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'deleteWebhook',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -3006,7 +3266,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def leave_chat(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method for your bot to leave a group, supergroup or channel.
@@ -3029,7 +3292,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
 
-        result = await self._post('leaveChat', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'leaveChat',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -3037,7 +3308,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def get_chat(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Chat:
         """
@@ -3062,7 +3336,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
 
-        result = await self._post('getChat', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getChat',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return Chat.de_json(result, self)  # type: ignore[return-value, arg-type]
 
@@ -3070,7 +3352,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def get_chat_administrators(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> List[ChatMember]:
         """
@@ -3097,7 +3382,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
         result = await self._post(
-            'getChatAdministrators', data, timeout=timeout, api_kwargs=api_kwargs
+            'getChatAdministrators',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return ChatMember.de_list(result, self)  # type: ignore
 
@@ -3105,7 +3396,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def get_chat_member_count(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> int:
         """Use this method to get the number of members in a chat.
@@ -3130,7 +3424,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
         result = await self._post(
-            'getChatMemberCount', data, timeout=timeout, api_kwargs=api_kwargs
+            'getChatMemberCount',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -3139,7 +3439,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         user_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> ChatMember:
         """Use this method to get information about a member of a chat.
@@ -3162,7 +3465,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'user_id': user_id}
-        result = await self._post('getChatMember', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getChatMember',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return ChatMember.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     @_log
@@ -3170,7 +3481,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         sticker_set_name: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to set a new group sticker set for a supergroup.
@@ -3194,7 +3508,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id, 'sticker_set_name': sticker_set_name}
         result = await self._post(
-            'setChatStickerSet', data, timeout=timeout, api_kwargs=api_kwargs
+            'setChatStickerSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -3202,7 +3522,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def delete_chat_sticker_set(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to delete a group sticker set from a supergroup. The bot must be an
@@ -3224,12 +3547,23 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
         result = await self._post(
-            'deleteChatStickerSet', data, timeout=timeout, api_kwargs=api_kwargs
+            'deleteChatStickerSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
     async def get_webhook_info(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> WebhookInfo:
         """Use this method to get current webhook status. Requires no parameters.
 
@@ -3247,7 +3581,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.WebhookInfo`
 
         """
-        result = await self._post('getWebhookInfo', None, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getWebhookInfo',
+            None,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return WebhookInfo.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     @_log
@@ -3260,7 +3602,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         inline_message_id: int = None,
         force: bool = None,
         disable_edit_message: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Union[Message, bool]:
         """
@@ -3308,7 +3653,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['disable_edit_message'] = disable_edit_message
 
         return await self._send_message(
-            'setGameScore', data, timeout=timeout, api_kwargs=api_kwargs
+            'setGameScore',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     @_log
@@ -3318,7 +3669,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         chat_id: Union[str, int] = None,
         message_id: int = None,
         inline_message_id: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> List[GameHighScore]:
         """
@@ -3361,7 +3715,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['inline_message_id'] = inline_message_id
 
         result = await self._post(
-            'getGameHighScores', data, timeout=timeout, api_kwargs=api_kwargs
+            'getGameHighScores',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return GameHighScore.de_list(result, self)  # type: ignore
@@ -3392,7 +3752,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         provider_data: Union[str, object] = None,
         send_phone_number_to_provider: bool = None,
         send_email_to_provider: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
         max_tip_amount: int = None,
@@ -3541,7 +3904,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -3552,7 +3918,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         ok: bool,
         shipping_options: List[ShippingOption] = None,
         error_message: str = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -3611,7 +3980,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['error_message'] = error_message
 
         result = await self._post(
-            'answerShippingQuery', data, timeout=timeout, api_kwargs=api_kwargs
+            'answerShippingQuery',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -3622,7 +3997,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         pre_checkout_query_id: str,
         ok: bool,
         error_message: str = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -3672,7 +4050,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['error_message'] = error_message
 
         result = await self._post(
-            'answerPreCheckoutQuery', data, timeout=timeout, api_kwargs=api_kwargs
+            'answerPreCheckoutQuery',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -3684,7 +4068,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         user_id: Union[str, int],
         permissions: ChatPermissions,
         until_date: Union[int, datetime] = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -3731,7 +4118,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['until_date'] = until_date
 
         result = await self._post(
-            'restrictChatMember', data, timeout=timeout, api_kwargs=api_kwargs
+            'restrictChatMember',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -3749,7 +4142,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         can_restrict_members: bool = None,
         can_pin_messages: bool = None,
         can_promote_members: bool = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         is_anonymous: bool = None,
         can_manage_chat: bool = None,
@@ -3835,7 +4231,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['can_manage_voice_chats'] = can_manage_voice_chats
 
         result = await self._post(
-            'promoteChatMember', data, timeout=timeout, api_kwargs=api_kwargs
+            'promoteChatMember',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -3845,7 +4247,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         permissions: ChatPermissions,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -3872,7 +4277,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id, 'permissions': permissions}
         result = await self._post(
-            'setChatPermissions', data, timeout=timeout, api_kwargs=api_kwargs
+            'setChatPermissions',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -3882,7 +4293,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         chat_id: Union[int, str],
         user_id: Union[int, str],
         custom_title: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -3911,7 +4325,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         data: JSONDict = {'chat_id': chat_id, 'user_id': user_id, 'custom_title': custom_title}
 
         result = await self._post(
-            'setChatAdministratorCustomTitle', data, timeout=timeout, api_kwargs=api_kwargs
+            'setChatAdministratorCustomTitle',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -3920,7 +4340,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def export_chat_invite_link(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> str:
         """
@@ -3953,7 +4376,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
         result = await self._post(
-            'exportChatInviteLink', data, timeout=timeout, api_kwargs=api_kwargs
+            'exportChatInviteLink',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -3963,7 +4392,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         chat_id: Union[str, int],
         expire_date: Union[int, datetime] = None,
         member_limit: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         name: str = None,
         creates_join_request: bool = None,
@@ -4029,7 +4461,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['creates_join_request'] = creates_join_request
 
         result = await self._post(
-            'createChatInviteLink', data, timeout=timeout, api_kwargs=api_kwargs
+            'createChatInviteLink',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return ChatInviteLink.de_json(result, self)  # type: ignore[return-value, arg-type]
@@ -4041,7 +4479,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         invite_link: Union[str, 'ChatInviteLink'],
         expire_date: Union[int, datetime] = None,
         member_limit: int = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         name: str = None,
         creates_join_request: bool = None,
@@ -4115,7 +4556,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['creates_join_request'] = creates_join_request
 
         result = await self._post(
-            'editChatInviteLink', data, timeout=timeout, api_kwargs=api_kwargs
+            'editChatInviteLink',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return ChatInviteLink.de_json(result, self)  # type: ignore[return-value, arg-type]
@@ -4125,7 +4572,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         invite_link: Union[str, 'ChatInviteLink'],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> ChatInviteLink:
         """
@@ -4159,7 +4609,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         data: JSONDict = {'chat_id': chat_id, 'invite_link': link}
 
         result = await self._post(
-            'revokeChatInviteLink', data, timeout=timeout, api_kwargs=api_kwargs
+            'revokeChatInviteLink',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return ChatInviteLink.de_json(result, self)  # type: ignore[return-value, arg-type]
@@ -4169,7 +4625,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         user_id: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to approve a chat join request.
@@ -4198,7 +4657,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         data: JSONDict = {'chat_id': chat_id, 'user_id': user_id}
 
         result = await self._post(
-            'approveChatJoinRequest', data, timeout=timeout, api_kwargs=api_kwargs
+            'approveChatJoinRequest',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -4208,7 +4673,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         user_id: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to decline a chat join request.
@@ -4237,7 +4705,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         data: JSONDict = {'chat_id': chat_id, 'user_id': user_id}
 
         result = await self._post(
-            'declineChatJoinRequest', data, timeout=timeout, api_kwargs=api_kwargs
+            'declineChatJoinRequest',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -4247,7 +4721,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         photo: FileInput,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to set a new profile photo for the chat.
@@ -4276,14 +4753,25 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'photo': parse_file_input(photo)}
-        result = await self._post('setChatPhoto', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'setChatPhoto',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return result  # type: ignore[return-value]
 
     @_log
     async def delete_chat_photo(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4308,7 +4796,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id}
-        result = await self._post('deleteChatPhoto', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'deleteChatPhoto',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return result  # type: ignore[return-value]
 
     @_log
@@ -4316,7 +4812,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         title: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4342,7 +4841,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'chat_id': chat_id, 'title': title}
-        result = await self._post('setChatTitle', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'setChatTitle',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return result  # type: ignore[return-value]
 
     @_log
@@ -4350,7 +4857,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         chat_id: Union[str, int],
         description: str = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4380,7 +4890,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if description is not None:
             data['description'] = description
         result = await self._post(
-            'setChatDescription', data, timeout=timeout, api_kwargs=api_kwargs
+            'setChatDescription',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -4390,7 +4906,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         chat_id: Union[str, int],
         message_id: int,
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4426,14 +4945,23 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         }
 
         return await self._post(  # type: ignore[return-value]
-            'pinChatMessage', data, timeout=timeout, api_kwargs=api_kwargs
+            'pinChatMessage',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     @_log
     async def unpin_chat_message(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         message_id: int = None,
     ) -> bool:
@@ -4467,14 +4995,23 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['message_id'] = message_id
 
         return await self._post(  # type: ignore[return-value]
-            'unpinChatMessage', data, timeout=timeout, api_kwargs=api_kwargs
+            'unpinChatMessage',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     @_log
     async def unpin_all_chat_messages(
         self,
         chat_id: Union[str, int],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4501,14 +5038,23 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'chat_id': chat_id}
         return await self._post(  # type: ignore[return-value]
-            'unpinAllChatMessages', data, timeout=timeout, api_kwargs=api_kwargs
+            'unpinAllChatMessages',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     @_log
     async def get_sticker_set(
         self,
         name: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> StickerSet:
         """Use this method to get a sticker set.
@@ -4529,7 +5075,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
 
         """
         data: JSONDict = {'name': name}
-        result = await self._post('getStickerSet', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getStickerSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return StickerSet.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     @_log
@@ -4537,7 +5091,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         user_id: Union[str, int],
         png_sticker: FileInput,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> File:
         """
@@ -4573,7 +5130,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'user_id': user_id, 'png_sticker': parse_file_input(png_sticker)}
         result = await self._post(
-            'uploadStickerFile', data, timeout=timeout, api_kwargs=api_kwargs
+            'uploadStickerFile',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return File.de_json(result, self)  # type: ignore[return-value, arg-type]
 
@@ -4587,7 +5150,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         png_sticker: FileInput = None,
         contains_masks: bool = None,
         mask_position: MaskPosition = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         tgs_sticker: FileInput = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
@@ -4661,7 +5227,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['mask_position'] = mask_position
 
         result = await self._post(
-            'createNewStickerSet', data, timeout=timeout, api_kwargs=api_kwargs
+            'createNewStickerSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -4674,7 +5246,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         emojis: str,
         png_sticker: FileInput = None,
         mask_position: MaskPosition = None,
-        timeout: DVInput[float] = DEFAULT_20,
+        read_timeout: float = 20,
+        write_timeout: float = 20,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         tgs_sticker: FileInput = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
@@ -4740,7 +5315,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if mask_position is not None:
             data['mask_position'] = mask_position
 
-        result = await self._post('addStickerToSet', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'addStickerToSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -4749,7 +5332,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         sticker: str,
         position: int,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to move a sticker in a set created by the bot to a specific position.
@@ -4772,7 +5358,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'sticker': sticker, 'position': position}
         result = await self._post(
-            'setStickerPositionInSet', data, timeout=timeout, api_kwargs=api_kwargs
+            'setStickerPositionInSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -4780,7 +5372,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def delete_sticker_from_set(
         self,
         sticker: str,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to delete a sticker from a set created by the bot.
@@ -4802,7 +5397,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'sticker': sticker}
         result = await self._post(
-            'deleteStickerFromSet', data, timeout=timeout, api_kwargs=api_kwargs
+            'deleteStickerFromSet',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -4812,7 +5413,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         name: str,
         user_id: Union[str, int],
         thumb: FileInput = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """Use this method to set the thumbnail of a sticker set. Animated thumbnails can be set
@@ -4854,7 +5458,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             data['thumb'] = parse_file_input(thumb)
 
         result = await self._post(
-            'setStickerSetThumb', data, timeout=timeout, api_kwargs=api_kwargs
+            'setStickerSetThumb',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
         return result  # type: ignore[return-value]
@@ -4864,7 +5474,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         self,
         user_id: Union[str, int],
         errors: List[PassportElementError],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> bool:
         """
@@ -4896,7 +5509,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         """
         data: JSONDict = {'user_id': user_id, 'errors': errors}
         result = await self._post(
-            'setPassportDataErrors', data, timeout=timeout, api_kwargs=api_kwargs
+            'setPassportDataErrors',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
         return result  # type: ignore[return-value]
 
@@ -4914,7 +5533,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         explanation: str = None,
         explanation_parse_mode: ODVInput[str] = DEFAULT_NONE,
         open_period: int = None,
@@ -5016,7 +5638,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
@@ -5026,7 +5651,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         chat_id: Union[int, str],
         message_id: int,
         reply_markup: InlineKeyboardMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> Poll:
         """
@@ -5056,7 +5684,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if reply_markup:
             data['reply_markup'] = reply_markup
 
-        result = await self._post('stopPoll', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'stopPoll',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return Poll.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     @_log
@@ -5066,7 +5702,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         disable_notification: ODVInput[bool] = DEFAULT_NONE,
         reply_to_message_id: int = None,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         emoji: str = None,
         api_kwargs: JSONDict = None,
         allow_sending_without_reply: ODVInput[bool] = DEFAULT_NONE,
@@ -5124,14 +5763,20 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             disable_notification=disable_notification,
             reply_markup=reply_markup,
             allow_sending_without_reply=allow_sending_without_reply,
-            timeout=timeout,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
             api_kwargs=api_kwargs,
         )
 
     @_log
     async def get_my_commands(
         self,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         scope: BotCommandScope = None,
         language_code: str = None,
@@ -5172,7 +5817,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if language_code:
             data['language_code'] = language_code
 
-        result = await self._post('getMyCommands', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'getMyCommands',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return BotCommand.de_list(result, self)  # type: ignore[return-value,arg-type]
 
@@ -5180,7 +5833,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
     async def set_my_commands(
         self,
         commands: List[Union[BotCommand, Tuple[str, str]]],
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
         scope: BotCommandScope = None,
         language_code: str = None,
@@ -5227,7 +5883,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if language_code:
             data['language_code'] = language_code
 
-        result = await self._post('setMyCommands', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'setMyCommands',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
@@ -5237,7 +5901,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         scope: BotCommandScope = None,
         language_code: str = None,
         api_kwargs: JSONDict = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
     ) -> bool:
         """
         Use this method to delete the list of the bot's commands for the given scope and user
@@ -5274,12 +5941,26 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if language_code:
             data['language_code'] = language_code
 
-        result = self._post('deleteMyCommands', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = self._post(
+            'deleteMyCommands',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
 
         return result  # type: ignore[return-value]
 
     @_log
-    async def log_out(self, timeout: ODVInput[float] = DEFAULT_NONE) -> bool:
+    async def log_out(
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+    ) -> bool:
         """
         Use this method to log out from the cloud Bot API server before launching the bot locally.
         You *must* log out the bot before running it locally, otherwise there is no guarantee that
@@ -5299,10 +5980,22 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        return await self._post('logOut', timeout=timeout)  # type: ignore[return-value]
+        return await self._post(
+            'logOut',
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+        )  # type: ignore[return-value]
 
     @_log
-    async def close(self, timeout: ODVInput[float] = DEFAULT_NONE) -> bool:
+    async def close(
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+    ) -> bool:
         """
         Use this method to close the bot instance before moving it from one local server to
         another. You need to delete the webhook before calling this method to ensure that the bot
@@ -5321,7 +6014,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        return await self._post('close', timeout=timeout)  # type: ignore[return-value]
+        return await self._post(
+            'close',
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+        )  # type: ignore[return-value]
 
     @_log
     async def copy_message(
@@ -5336,7 +6035,10 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         reply_to_message_id: int = None,
         allow_sending_without_reply: DVInput[bool] = DEFAULT_NONE,
         reply_markup: ReplyMarkup = None,
-        timeout: ODVInput[float] = DEFAULT_NONE,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
         api_kwargs: JSONDict = None,
     ) -> MessageId:
         """
@@ -5396,7 +6098,15 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
         if reply_markup:
             data['reply_markup'] = reply_markup
 
-        result = await self._post('copyMessage', data, timeout=timeout, api_kwargs=api_kwargs)
+        result = await self._post(
+            'copyMessage',
+            data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
+        )
         return MessageId.de_json(result, self)  # type: ignore[return-value, arg-type]
 
     def to_dict(self) -> JSONDict:

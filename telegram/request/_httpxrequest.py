@@ -94,7 +94,11 @@ class HTTPXRequest(BaseRequest):
         # TODO p0: Test client with proxy!
         # TODO p2: Document that this can also be specified via env vars
         #          https://www.python-httpx.org/advanced/#environment-variables
-        self._client = httpx.AsyncClient(timeout=timeout, proxies=proxy_url, limits=limits)
+        self._client = httpx.AsyncClient(
+            timeout=timeout,
+            proxies=proxy_url,
+            limits=limits,
+        )
 
     @property
     def connection_pool_size(self) -> int:
@@ -113,8 +117,10 @@ class HTTPXRequest(BaseRequest):
         method: str,
         url: str,
         request_data: RequestData = None,
+        connect_timeout: float = None,
         read_timeout: float = None,
         write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> Tuple[int, bytes]:
         """See :meth:`BaseRequest.do_request`."""
         timeout = httpx.Timeout(
@@ -127,6 +133,10 @@ class HTTPXRequest(BaseRequest):
             timeout.read = read_timeout
         if write_timeout is not None:
             timeout.write = write_timeout
+        if connect_timeout is not None:
+            timeout.connect = connect_timeout
+        if pool_timeout is not None:
+            timeout.pool = pool_timeout
 
         # TODO p0: On Linux, use setsockopt to properly set socket level keepalive.
         #          (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 120)

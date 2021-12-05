@@ -116,7 +116,10 @@ class BaseRequest(
         self,
         url: str,
         request_data: RequestData = None,
+        connect_timeout: float = None,
         read_timeout: float = None,
+        write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> Union[JSONDict, bool]:
         """Makes a request to the Bot API handles the return code and parses the answer.
 
@@ -124,27 +127,51 @@ class BaseRequest(
             This method will be called by the methods of :class:`Bot` and should *not* be called
             manually.
 
+
         Args:
             url (:obj:`str`): The web location we want to retrieve.
             request_data (:class:`telegram.request.RequestData`, optional): An object describing
                 any parameters and files to upload for the request.
-            read_timeout (:obj:`float`, optional): If this value is specified, use it as the read
-                timeout from the server (instead of the one specified during creation of the
-                connection pool).
+            connect_timeout (:obj:`float`, optional): If passed, specifies the maximum amount of
+                time (in seconds) to wait for a connection attempt to a server to succeed instead
+                of the time specified during creating of this object.
+            read_timeout (:obj:`float`, optional): If passed, specifies the maximum amount of time
+                (in seconds) to wait for a response from Telegram's server instead
+                of the time specified during creating of this object.
+            write_timeout (:obj:`float`, optional): If passed, specifies the maximum amount of time
+                (in seconds) to wait for a write operation to complete (in terms of a network
+                socket; i.e. POSTing a request or uploading a file) instead
+                of the time specified during creating of this object.
+            pool_timeout (:obj:`float`, optional): If passed, specifies the maximum amount of time
+                (in seconds) to wait for a connection to become available instead
+                of the time specified during creating of this object.
 
         Returns:
           Dict[:obj:`str`, ...]: The JSON response of the Bot API.
 
         """
         result = await self._request_wrapper(
-            method='POST', url=url, request_data=request_data, read_timeout=read_timeout
+            method='POST',
+            url=url,
+            request_data=request_data,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
         )
         json_data = self._parse_json_response(result)
         # For successful requests, the results are in the 'result' entry
         # see https://core.telegram.org/bots/api#making-requests
         return json_data['result']
 
-    async def retrieve(self, url: str, timeout: float = None) -> bytes:
+    async def retrieve(
+        self,
+        url: str,
+        read_timeout: float = None,
+        connect_timeout: float = None,
+        write_timeout: float = None,
+        pool_timeout: float = None,
+    ) -> bytes:
         """Retrieve the contents of a file by its URL.
 
         Warning:
@@ -161,7 +188,14 @@ class BaseRequest(
             :obj:`bytes`: The files contents.
 
         """
-        return await self._request_wrapper(method='GET', url=url, read_timeout=timeout)
+        return await self._request_wrapper(
+            method='GET',
+            url=url,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+        )
 
     async def _request_wrapper(
         self,
@@ -169,6 +203,9 @@ class BaseRequest(
         url: str,
         request_data: RequestData = None,
         read_timeout: float = None,
+        connect_timeout: float = None,
+        write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> bytes:
         """Wraps the real implementation request method.
 
@@ -195,7 +232,13 @@ class BaseRequest(
 
         try:
             code, payload = await self.do_request(
-                method, url, request_data=request_data, read_timeout=read_timeout
+                method,
+                url,
+                request_data=request_data,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
             )
         except TelegramError as exc:
             raise exc
@@ -265,13 +308,15 @@ class BaseRequest(
         method: str,
         url: str,
         request_data: RequestData = None,
+        connect_timeout: float = None,
         read_timeout: float = None,
         write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> Tuple[int, bytes]:
         """Makes a request to the Bot API. Must be implemented by a subclass.
 
         Warning:
-            This method will be called by :meth:`post` and :meth:`retrieve`. I should *not* be
+            This method will be called by :meth:`post` and :meth:`retrieve`. It should *not* be
             called manually.
 
         Args:

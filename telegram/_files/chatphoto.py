@@ -20,8 +20,7 @@
 from typing import TYPE_CHECKING, Any
 
 from telegram import TelegramObject
-from telegram._utils.defaultvalue import DEFAULT_NONE
-from telegram._utils.types import JSONDict, ODVInput
+from telegram._utils.types import JSONDict
 
 if TYPE_CHECKING:
     from telegram import Bot, File
@@ -94,7 +93,12 @@ class ChatPhoto(TelegramObject):
         )
 
     async def get_small_file(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> 'File':
         """Convenience wrapper over :attr:`telegram.Bot.get_file` for getting the
         small (160x160) chat photo
@@ -109,11 +113,21 @@ class ChatPhoto(TelegramObject):
 
         """
         return await self.get_bot().get_file(
-            file_id=self.small_file_id, timeout=timeout, api_kwargs=api_kwargs
+            file_id=self.small_file_id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )
 
     async def get_big_file(
-        self, timeout: ODVInput[float] = DEFAULT_NONE, api_kwargs: JSONDict = None
+        self,
+        read_timeout: float = None,
+        write_timeout: float = None,
+        connect_timeout: float = None,
+        pool_timeout: float = None,
+        api_kwargs: JSONDict = None,
     ) -> 'File':
         """Convenience wrapper over :attr:`telegram.Bot.get_file` for getting the
         big (640x640) chat photo
@@ -128,5 +142,10 @@ class ChatPhoto(TelegramObject):
 
         """
         return await self.get_bot().get_file(
-            file_id=self.big_file_id, timeout=timeout, api_kwargs=api_kwargs
+            file_id=self.big_file_id,
+            read_timeout=read_timeout,
+            write_timeout=write_timeout,
+            connect_timeout=connect_timeout,
+            pool_timeout=pool_timeout,
+            api_kwargs=api_kwargs,
         )

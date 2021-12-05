@@ -122,10 +122,19 @@ class TestHttpxRequest(HTTPXRequest):
         url: str,
         request_data: RequestData = None,
         read_timeout: float = None,
+        connect_timeout: float = None,
+        write_timeout: float = None,
+        pool_timeout: float = None,
     ) -> bytes:
         try:
             return await super()._request_wrapper(
-                method=method, url=url, request_data=request_data, read_timeout=read_timeout
+                method=method,
+                url=url,
+                request_data=request_data,
+                read_timeout=read_timeout,
+                write_timeout=write_timeout,
+                connect_timeout=connect_timeout,
+                pool_timeout=pool_timeout,
             )
         except RetryAfter as e:
             pytest.xfail(f'Not waiting for flood control: {e}')
@@ -649,8 +658,6 @@ async def check_defaults_handling(
         for kwarg, value in shortcut_signature.parameters.items()
         if isinstance(value.default, DefaultValue)
     ]
-    # shortcut_signature.parameters['timeout'] is of type DefaultValue
-    method_timeout = shortcut_signature.parameters['timeout'].default.value
 
     defaults_no_custom_defaults = Defaults()
     kwargs = {kwarg: 'custom_default' for kwarg in inspect.signature(Defaults).parameters.keys()}
@@ -660,14 +667,9 @@ async def check_defaults_handling(
     expected_return_values = [None, []] if return_value is None else [return_value]
 
     async def make_assertion(
-        url, request_data: RequestData, read_timeout=DEFAULT_NONE, df_value=DEFAULT_NONE
+        url, request_data: RequestData, df_value=DEFAULT_NONE, *args, **kwargs
     ):
         data = request_data.parameters
-
-        # Check timeout first
-        expected_timeout = method_timeout if df_value is DEFAULT_NONE else df_value
-        if read_timeout != expected_timeout:
-            pytest.fail(f'Got value {read_timeout} for "timeout", expected {expected_timeout}')
 
         # Check regular arguments that need defaults
         for arg in (dkw for dkw in kwargs_need_default if dkw != 'timeout'):

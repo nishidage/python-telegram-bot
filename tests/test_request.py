@@ -289,14 +289,15 @@ class TestRequest:
             url: str,
             request_data: RequestData = None,
             read_timeout: float = None,
-            write_timeout: float = None,
+            *args,
+            **kwargs,
         ):
             self.test_flag = read_timeout
             return HTTPStatus.OK, b'{"ok": "True", "result": {}}'
 
         monkeypatch.setattr(httpx_request, 'do_request', make_assertion)
 
-        await httpx_request.post('url', None, 42.314)
+        await httpx_request.post('url', None, read_timeout=42.314)
         assert self.test_flag == 42.314
 
 

@@ -45,7 +45,7 @@ def document_file():
 @pytest.mark.asyncio
 async def document(bot, chat_id):
     with data_file('telegram.png').open('rb') as f:
-        return (await bot.send_document(chat_id, document=f, timeout=50)).document
+        return (await bot.send_document(chat_id, document=f, read_timeout=50)).document
 
 
 class TestDocument:
@@ -148,7 +148,7 @@ class TestDocument:
     async def test_send_with_document(
         self, monkeypatch, bot, chat_id, document, disable_content_type_detection
     ):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             data = request_data.parameters
             type_detection = (
                 data.get('disable_content_type_detection') == disable_content_type_detection

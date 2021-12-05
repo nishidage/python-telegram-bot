@@ -45,7 +45,7 @@ def sticker_file():
 @pytest.mark.asyncio
 async def sticker(bot, chat_id):
     with data_file('telegram.webp').open('rb') as f:
-        return (await bot.send_sticker(chat_id, sticker=f, timeout=50)).sticker
+        return (await bot.send_sticker(chat_id, sticker=f, read_timeout=50)).sticker
 
 
 @pytest.fixture(scope='function')
@@ -59,7 +59,7 @@ def animated_sticker_file():
 @pytest.mark.asyncio
 async def animated_sticker(bot, chat_id):
     with data_file('telegram_animated_sticker.tgs').open('rb') as f:
-        return (await bot.send_sticker(chat_id, sticker=f, timeout=50)).sticker
+        return (await bot.send_sticker(chat_id, sticker=f, read_timeout=50)).sticker
 
 
 class TestSticker:
@@ -215,7 +215,7 @@ class TestSticker:
 
     @pytest.mark.asyncio
     async def test_send_with_sticker(self, monkeypatch, bot, chat_id, sticker):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['sticker'] == sticker.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

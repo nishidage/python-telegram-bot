@@ -44,7 +44,7 @@ def voice_file():
 @pytest.fixture(scope='class')
 async def voice(bot, chat_id):
     with data_file('telegram.ogg').open('rb') as f:
-        return (await bot.send_voice(chat_id, voice=f, timeout=50)).voice
+        return (await bot.send_voice(chat_id, voice=f, read_timeout=50)).voice
 
 
 class TestVoice:
@@ -97,7 +97,7 @@ class TestVoice:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_voice_custom_filename(self, bot, chat_id, voice_file, monkeypatch):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -145,7 +145,7 @@ class TestVoice:
 
     @pytest.mark.asyncio
     async def test_send_with_voice(self, monkeypatch, bot, chat_id, voice):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['voice'] == voice.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

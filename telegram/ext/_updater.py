@@ -181,7 +181,7 @@ class Updater(Generic[BT, DT]):
         poll_interval: float = 0.0,
         timeout: float = 10,
         bootstrap_retries: int = -1,
-        read_latency: float = 2.0,
+        read_timeout: float = 2.0,
         allowed_updates: List[str] = None,
         drop_pending_updates: bool = None,
     ) -> Optional[Queue]:
@@ -207,7 +207,7 @@ class Updater(Generic[BT, DT]):
 
             allowed_updates (List[:obj:`str`], optional): Passed to
                 :meth:`telegram.Bot.get_updates`.
-            read_latency (:obj:`float` | :obj:`int`, optional): Grace time in seconds for receiving
+            read_timeout (:obj:`float` | :obj:`int`, optional): Grace time in seconds for receiving
                 the reply from server. Will be added to the ``timeout`` value and used as the read
                 timeout from server (Default: ``2``).
 
@@ -230,7 +230,7 @@ class Updater(Generic[BT, DT]):
                     "updater",
                     poll_interval,
                     timeout,
-                    read_latency,
+                    read_timeout,
                     bootstrap_retries,
                     drop_pending_updates,
                     allowed_updates,
@@ -353,7 +353,7 @@ class Updater(Generic[BT, DT]):
         self,
         poll_interval,
         timeout,
-        read_latency,
+        read_timeout,
         bootstrap_retries,
         drop_pending_updates,
         allowed_updates,
@@ -378,7 +378,7 @@ class Updater(Generic[BT, DT]):
             updates = self.bot.get_updates(
                 self.last_update_id,
                 timeout=timeout,
-                read_latency=read_latency,
+                read_timeout=read_timeout,
                 allowed_updates=allowed_updates,
             )
 

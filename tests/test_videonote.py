@@ -44,7 +44,7 @@ def video_note_file():
 @pytest.mark.asyncio
 async def video_note(bot, chat_id):
     with data_file('telegram2.mp4').open('rb') as f:
-        return (await bot.send_video_note(chat_id, video_note=f, timeout=50)).video_note
+        return (await bot.send_video_note(chat_id, video_note=f, read_timeout=50)).video_note
 
 
 class TestVideoNote:
@@ -109,7 +109,7 @@ class TestVideoNote:
     async def test_send_video_note_custom_filename(
         self, bot, chat_id, video_note_file, monkeypatch
     ):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -143,7 +143,7 @@ class TestVideoNote:
 
     @pytest.mark.asyncio
     async def test_send_with_video_note(self, monkeypatch, bot, chat_id, video_note):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['video_note'] == video_note.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

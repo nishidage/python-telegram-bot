@@ -45,7 +45,7 @@ def video_file():
 @pytest.mark.asyncio
 async def video(bot, chat_id):
     with data_file('telegram.mp4').open('rb') as f:
-        return (await bot.send_video(chat_id, video=f, timeout=50)).video
+        return (await bot.send_video(chat_id, video=f, read_timeout=50)).video
 
 
 class TestVideo:
@@ -125,7 +125,7 @@ class TestVideo:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_video_custom_filename(self, bot, chat_id, video_file, monkeypatch):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -201,7 +201,7 @@ class TestVideo:
 
     @pytest.mark.asyncio
     async def test_send_with_video(self, monkeypatch, bot, chat_id, video):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['video'] == video.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

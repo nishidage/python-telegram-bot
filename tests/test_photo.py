@@ -47,7 +47,7 @@ def photo_file():
 async def _photo(bot, chat_id):
     async def func():
         with data_file('telegram.jpg').open('rb') as f:
-            photo = (await bot.send_photo(chat_id, photo=f, timeout=50)).photo
+            photo = (await bot.send_photo(chat_id, photo=f, read_timeout=50)).photo
             return photo
 
     return await expect_bad_request(
@@ -130,7 +130,7 @@ class TestPhoto:
     @flaky(3, 1)
     @pytest.mark.asyncio
     async def test_send_photo_custom_filename(self, bot, chat_id, photo_file, monkeypatch):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return list(request_data.multipart_data.values())[0][0] == 'custom_filename'
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)
@@ -419,7 +419,7 @@ class TestPhoto:
 
     @pytest.mark.asyncio
     async def test_send_with_photosize(self, monkeypatch, bot, chat_id, photo):
-        async def make_assertion(url, request_data: RequestData, read_timeout):
+        async def make_assertion(url, request_data: RequestData, *args, **kwargs):
             return request_data.json_parameters['photo'] == photo.file_id
 
         monkeypatch.setattr(bot.request, 'post', make_assertion)

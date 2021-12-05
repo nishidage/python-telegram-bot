@@ -5980,13 +5980,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        return await self._post(
+        return await self._post(  # type: ignore[return-value]
             'logOut',
             read_timeout=read_timeout,
             write_timeout=write_timeout,
             connect_timeout=connect_timeout,
             pool_timeout=pool_timeout,
-        )  # type: ignore[return-value]
+        )
 
     @_log
     async def close(
@@ -6014,13 +6014,13 @@ class Bot(TelegramObject, AbstractAsyncContextManager):
             :class:`telegram.error.TelegramError`
 
         """
-        return await self._post(
+        return await self._post(  # type: ignore[return-value]
             'close',
             read_timeout=read_timeout,
             write_timeout=write_timeout,
             connect_timeout=connect_timeout,
             pool_timeout=pool_timeout,
-        )  # type: ignore[return-value]
+        )
 
     @_log
     async def copy_message(

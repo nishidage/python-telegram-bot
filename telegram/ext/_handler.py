@@ -17,11 +17,12 @@
 # You should have received a copy of the GNU Lesser Public License
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains the base class for handlers as used by the Dispatcher."""
+import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union, Generic
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, Union, Generic, cast, Coroutine
 
 from telegram._utils.defaultvalue import DefaultValue, DEFAULT_FALSE
-from telegram.ext._utils.promise import Promise
+from telegram._utils.warnings import warn
 from telegram.ext._utils.types import CCT, HandlerCallback
 from telegram.ext._extbot import ExtBot
 
@@ -68,6 +69,12 @@ class Handler(Generic[UT, CCT], ABC):
         self.callback = callback
         self.run_async = run_async
 
+        if self.run_async and not asyncio.iscoroutinefunction(self.callback):
+            warn(
+                '`run_async=True` will only be used for coroutine functions. '
+                f'{self.callback.__qualname__} is not a coroutine function.'
+            )
+
     @abstractmethod
     def check_update(self, update: object) -> Optional[Union[bool, object]]:
         """
@@ -88,13 +95,13 @@ class Handler(Generic[UT, CCT], ABC):
 
         """
 
-    def handle_update(
+    async def handle_update(
         self,
         update: UT,
         dispatcher: 'Dispatcher',
         check_result: object,
         context: CCT,
-    ) -> Union[RT, Promise]:
+    ) -> Union[RT, 'asyncio.Task[Optional[RT]]']:
         """
         This method is called if it was determined that an update should indeed
         be handled by this instance. Calls :attr:`callback` along with its respectful
@@ -120,9 +127,14 @@ class Handler(Generic[UT, CCT], ABC):
             run_async = True
 
         self.collect_additional_context(context, update, dispatcher, check_result)
-        if run_async:
-            return dispatcher.run_asyncio(self.callback, update, context, update=update)
-        return self.callback(update, context)
+        if run_async and asyncio.iscoroutinefunction(self.callback):
+            return await dispatcher.run_asyncio(
+                self.callback, update, context, update=update  # type: ignore[arg-type]
+            )
+
+        if asyncio.iscoroutinefunction(self.callback):
+            return await cast(Coroutine[Any, Any, RT], self.callback(update, context))
+        return cast(RT, self.callback(update, context))
 
     def collect_additional_context(
         self,

@@ -18,24 +18,24 @@
 # along with this program.  If not, see [http://www.gnu.org/licenses/].
 """This module contains the Dispatcher class."""
 import asyncio
-import functools
 import inspect
 import logging
 from collections import defaultdict
 from pathlib import Path
-from threading import Event, Lock, current_thread
+from threading import Event, Lock
 from typing import (
     Callable,
     DefaultDict,
     Dict,
     List,
     Optional,
-    Set,
     Union,
     Generic,
     TypeVar,
     TYPE_CHECKING,
     Coroutine,
+    Sequence,
+    Any,
 )
 
 from telegram import Update
@@ -47,7 +47,6 @@ from telegram._utils.defaultvalue import DefaultValue, DEFAULT_FALSE
 from telegram._utils.warnings import warn
 from telegram.ext._utils.types import CCT, UD, CD, BD, BT, JQ, PT, HandlerCallback
 from telegram.ext._utils.stack import was_called_by
-from ._utils.promise import Promise
 
 if TYPE_CHECKING:
     from telegram.ext._jobqueue import Job
@@ -56,6 +55,7 @@ if TYPE_CHECKING:
 DEFAULT_GROUP: int = 0
 
 UT = TypeVar('UT')
+PooledRT = TypeVar('PooledRT')
 
 _logger = logging.getLogger(__name__)
 
@@ -148,13 +148,14 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         'groups',
         'error_handlers',
         'running',
-        '__asyncio_workers',
-        '__asyncio_queue',
-        '__asyncio_threads',
+        '__pool_semaphore',
+        '__run_asyncio_task_counter',
+        '__run_asyncio_task_condition',
         '__update_fetcher_task',
-        '__run_asyncio_tasks',
+        '__stop_event',
         'bot',
         'context_types',
+        'process_asyncio',
     )
 
     def __init__(
@@ -181,6 +182,7 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.job_queue = job_queue
         self.workers = workers
         self.context_types = context_types
+        self.process_asyncio = False
 
         if self.workers < 1:
             warn(
@@ -235,11 +237,23 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.groups: List[int] = []
         self.error_handlers: Dict[Callable, Union[bool, DefaultValue]] = {}
 
+        # A number of low-level helpers for the internal logic
         self.running = False
-        self.__asyncio_workers: Set[asyncio.Task] = set()
-        self.__update_fetcher_task: Optional[asyncio.Task]
-        self.__asyncio_queue: asyncio.Queue = asyncio.Queue()
-        self.__run_asyncio_tasks: Set[asyncio.Task] = set()
+        self.__pool_semaphore = asyncio.BoundedSemaphore(value=self.workers)
+        self.__update_fetcher_task: Optional[asyncio.Task] = None
+        self.__run_asyncio_task_counter = 0
+        self.__run_asyncio_task_condition = asyncio.Condition()
+        self.__stop_event = asyncio.Event()
+
+    async def __increment_run_asyncio_task_counter(self) -> None:
+        async with self.__run_asyncio_task_condition:
+            self.__run_asyncio_task_counter += 1
+
+    async def __decrement_run_asyncio_task_counter(self) -> None:
+        async with self.__run_asyncio_task_condition:
+            self.__run_asyncio_task_counter -= 1
+            if self.__run_asyncio_task_counter <= 0:
+                self.__run_asyncio_task_condition.notify_all()
 
     @staticmethod
     def builder() -> 'InitDispatcherBuilder':
@@ -252,70 +266,62 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
 
         return DispatcherBuilder()
 
-    async def _asyncio_worker(self) -> None:
-        while True:
-            coroutine = await self.__asyncio_queue.get()
-            await coroutine
-            self.__asyncio_queue.task_done()
-
-    async def _update_fetcher(self) -> None:
-        while True:
-            update = await self.update_queue.get()
-            self.update_queue.task_done()
-            a = self.process_update(update)
-            await self.__asyncio_queue.put(a)
-
-    def _init_asyncio_workers(self, workers: int) -> None:
-        for i in range(workers):
-            task = asyncio.create_task(
-                self._asyncio_worker(), name=f'Dispatcher:{self.bot.id}:worker:{i}'
-            )
-            self.__asyncio_workers.add(task)
+    async def __pooled_wrapper(
+        self,
+        func: Callable[..., Coroutine[Any, Any, PooledRT]],
+        args: Sequence[object],
+        kwargs: Dict[str, object],
+        update: Optional[object],
+    ) -> Optional[PooledRT]:
+        # Use the semaphore to throttle the number of tasks running in parallel
+        async with self.__pool_semaphore:
+            try:
+                return await self._pooled(func=func, args=args, kwargs=kwargs, update=update)
+            finally:
+                await self.__decrement_run_asyncio_task_counter()
 
     async def _pooled(
         self,
-        task: asyncio.Task,
-        update: Optional[object],
-        func: Callable[..., Coroutine],
-        args: List[object],
+        func: Callable[..., Coroutine[Any, Any, PooledRT]],
+        args: Sequence[object],
         kwargs: Dict[str, object],
-    ) -> None:
-        # Remove this task from the set so that we don't have to await it when shutting down
-        self.__run_asyncio_tasks.remove(task)
+        update: Optional[object],
+    ) -> Optional[PooledRT]:
+        try:
+            result = await func(*args, **kwargs)
 
-        exception = task.exception()
-
-        if not exception:
             self.update_persistence(update=update)
-            return
+            return result
 
-        if isinstance(exception, DispatcherHandlerStop):
-            warn(
-                'DispatcherHandlerStop is not supported with async functions; '
-                f'func: {func.__qualname__}',
-            )
-            return
+        except Exception as exception:
+            if isinstance(exception, DispatcherHandlerStop):
+                warn(
+                    'DispatcherHandlerStop is not supported with async functions; '
+                    f'func: {func.__qualname__}',
+                )
+                return None
 
-        # Avoid infinite recursion of error handlers.
-        if func in self.error_handlers:
-            _logger.exception(
-                'An error was raised and an uncaught error was raised while '
-                'handling the error with an error_handler.',
-                exc_info=exception,
-            )
-            return
+            # Avoid infinite recursion of error handlers.
+            if func in self.error_handlers:
+                _logger.exception(
+                    'An error was raised and an uncaught error was raised while '
+                    'handling the error with an error_handler.',
+                    exc_info=exception,
+                )
+                return None
 
-        # If we arrive here, an exception happened in the task and was neither
-        # DispatcherHandlerStop nor raised by an error handler. So we can and must handle it
-        await self.dispatch_error(update, exception, asyncio_args=args, asyncio_kwargs=kwargs)
+            # If we arrive here, an exception happened in the task and was neither
+            # DispatcherHandlerStop nor raised by an error handler. So we can and must handle it
+            await self.dispatch_error(update, exception, asyncio_args=args, asyncio_kwargs=kwargs)
+            return None
 
-    def run_asyncio(
+    async def run_asyncio(
         self,
-        func: Callable[..., Coroutine],
+        func: Callable[..., Coroutine[Any, Any, PooledRT]],
         *args: object,
         update: object = None,
         **kwargs: object,
-    ) -> asyncio.Task:
+    ) -> 'asyncio.Task[Optional[PooledRT]]':
         """
         Queue a function (with given args/kwargs) to be run asynchronously. Exceptions raised
         by the function will be handled by the error handlers registered with
@@ -339,9 +345,14 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
             Promise
 
         """
-        promise = Promise(func, args, kwargs, update=update, dispatcher=self)
-        task = asyncio.create_task(promise())
-        self.__run_asyncio_tasks.add(task)
+        task = asyncio.create_task(
+            self.__pooled_wrapper(func=func, args=args, kwargs=kwargs, update=update)
+        )
+
+        # Keep a track of how many tasks are running so that we can wait for them to finish
+        # on shutdown
+        await self.__increment_run_asyncio_task_counter()
+
         return task
 
     async def start(self, ready: Event = None) -> None:
@@ -365,44 +376,34 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.__update_fetcher_task = asyncio.create_task(
             self._update_fetcher(), name=f'Dispatcher:{self.bot.id}:update_fetcher'
         )
-        self._init_asyncio_workers(self.workers)
         self.running = True
         _logger.debug('Dispatcher started')
 
         if ready is not None:
             ready.set()
 
-    async def stop(self, wait_for_updates: bool = True) -> None:
-        """Stops the thread and :attr:`job_queue`, if set.
-        Also calls :meth:`update_persistence` and :meth:`BasePersistence.flush` on
+    async def stop(self) -> None:
+        """Stops the process after processing any pending updates or tasks created by
+        :meth:`run_asyncio`. Also stops :attr:`job_queue`, if set.
+        Finally, calls :meth:`update_persistence` and :meth:`BasePersistence.flush` on
         :attr:`persistence`, if set.
-
-        Args:
-            wait_for_updates (:obj:`bool`, optional): Whether or not to wait for all currently
-                fetched updates to be processed before shutting down. Defaults to :obj:`True`.
         """
         # Only relevant if the dispatcher is running
         if self.running:
-            self.__update_fetcher_task.cancel()
-            try:
-                await self.__update_fetcher_task
-            except asyncio.CancelledError:
-                _logger.debug("Dispatcher stopped fetching of updates.")
+
+            # Stop listening for new updates and handle all pending ones
+            self.__stop_event.set()
+            await self.update_queue.join()
+            await self.__update_fetcher_task if self.__update_fetcher_task else None
+            _logger.debug("Dispatcher stopped fetching of updates.")
+
+            # Wait for pending `run_asyncio` tasks
+            async with self.__run_asyncio_task_condition:
+                if self.__run_asyncio_task_counter > 0:
+                    _logger.debug('Waiting for `run_asyncio` calls to be processed')
+                    await self.__run_asyncio_task_condition.wait()
 
             self.running = False
-
-            if wait_for_updates:
-                _logger.debug('Waiting for updates to be processed')
-                await self.update_queue.join()
-                await self.__asyncio_queue.join()
-
-            for worker in self.__asyncio_workers:
-                worker.cancel()
-            await asyncio.gather(*self.__asyncio_workers, return_exceptions=True)
-            _logger.debug('Dispatcher stopped processing updates')
-
-            await asyncio.gather(*self.__run_asyncio_tasks, return_exceptions=True)
-            _logger.debug('Pending `run_asyncio` calls resolved')
 
         # Things that need to be done even if `start()` was not called
         self.update_persistence()
@@ -411,6 +412,27 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
 
         # Shut down the bot
         await self.bot.shutdown()
+
+    async def _update_fetcher(self) -> None:
+        # Continuously fetch updates from the queue. Exit only if the queue is empty and the
+        # __stop_event has been set, otherwise keep fetching
+        while True:
+            try:
+                update = self.update_queue.get_nowait()
+                _logger.debug('Processing update %s', update)
+
+                if self.process_asyncio:
+                    asyncio.create_task(self.__process_update_wrapper(update))
+                else:
+                    await self.__process_update_wrapper(update)
+            except asyncio.QueueEmpty:
+                if self.__stop_event.is_set():
+                    _logger.debug('Stopping fetching updates')
+                    return
+
+    async def __process_update_wrapper(self, update: object) -> None:
+        await self.process_update(update)
+        self.update_queue.task_done()
 
     async def process_update(self, update: object) -> None:
         """Processes a single update and updates the persistence.
@@ -427,6 +449,11 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
                 The update to process.
 
         """
+        # Use the semaphore to throttle the number of tasks running in parallel
+        async with self.__pool_semaphore:
+            return await self.__process_update(update)
+
+    async def __process_update(self, update: object) -> None:
         # An error happened while polling
         if isinstance(update, TelegramError):
             await self.dispatch_error(None, update)
@@ -622,7 +649,7 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
                 asynchronously using :meth:`run_async`. Defaults to :obj:`False`.
         """
         if callback in self.error_handlers:
-            _logger.debug('The callback is already registered as an error handler. Ignoring.')
+            _logger.warning('The callback is already registered as an error handler. Ignoring.')
             return
 
         if (
@@ -647,9 +674,9 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
     async def dispatch_error(
         self,
         update: Optional[object],
-        error: BaseException,
+        error: Exception,
         job: 'Job' = None,
-        asyncio_args: List[object] = None,
+        asyncio_args: Sequence[object] = None,
         asyncio_kwargs: Dict[str, object] = None,
     ) -> bool:
         """Dispatches an error by passing it to all error handlers registered with
@@ -692,10 +719,10 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
                     job=job,
                 )
                 if run_async:
-                    self.run_asyncio(callback, update, context, update=update)
+                    await self.run_asyncio(callback, update, context, update=update)
                 else:
                     try:
-                        callback(update, context)
+                        await callback(update, context)
                     except DispatcherHandlerStop:
                         return True
                     except Exception as exc:

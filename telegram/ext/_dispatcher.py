@@ -135,7 +135,9 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
 
     """
 
+    # Allowing '__weakref__' creation here since we need it for the JobQueue
     __slots__ = (
+        '__weakref__',
         'workers',
         'persistence',
         'update_queue',
@@ -183,6 +185,9 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.workers = workers
         self.context_types = context_types
         self.process_asyncio = False
+
+        if self.job_queue:
+            self.job_queue.set_dispatcher(self)
 
         if self.workers < 1:
             warn(
@@ -379,6 +384,10 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.running = True
         _logger.debug('Dispatcher started')
 
+        if self.job_queue:
+            self.job_queue.start()
+            _logger.debug('JobQueue started')
+
         if ready is not None:
             ready.set()
 
@@ -409,6 +418,12 @@ class Dispatcher(Generic[BT, CCT, UD, CD, BD, JQ, PT]):
         self.update_persistence()
         if self.persistence:
             self.persistence.flush()
+            _logger.debug('Updated and flushed persistence')
+
+        if self.job_queue:
+            _logger.debug('Waiting for running jobs to finish')
+            self.job_queue.stop(wait=True)
+            _logger.debug('JobQueue stopped')
 
         # Shut down the bot
         await self.bot.shutdown()
